@@ -1,0 +1,16 @@
+Pruebas finales de Estudio de entrevistas v0.03
+Commit: 5214df37f8d478c0df73c987ad2daa6aabad9fd0
+Ejecutado en GitHub Actions: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45350056966
+Resultado global: success
+Despliegue: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45350055578
+
+2026-11-24T07:42:30.9572897Z # tests 19
+2026-11-24T07:42:30.9573512Z # pass 19
+2026-11-24T07:42:30.9587449Z # fail 0
+2026-11-24T07:42:51.4214970Z {'written': 156499, 'ending': False, 'format': 'video/webm;codecs=vp8,opus', 'state': 'recording', 'error': None, 'notice': '', 'localReady': 4, 'remoteReady': 4}
+2026-11-24T07:42:51.4215772Z {'video': 'vp8', 'audio': 'opus', 'width': 1280, 'height': 720}
+2026-11-24T07:42:51.4217865Z PASS: cámara/micrófono simulados, invitación, rechazo de token incorrecto, admisión, grabación real, escritura OPFS, exportación y pistas de audio/vídeo. Señalización simulada; no prueba WebRTC entre redes.
+2026-11-24T07:42:53.4916945Z PASS: contraseña incorrecta rechazada; contraseña correcta abre anfitrión; invitación abre invitado sin contraseña; enlace incompleto rechazado.
+2026-11-24T07:43:06.9678102Z {"video": "vp8", "audio": "opus", "width": 1280, "height": 720}
+2026-11-24T07:43:06.9679148Z PASS: señalización PeerJS real, WebRTC en dos contextos, consentimiento, admisión, grabación, salida, cierre, persistencia OPFS, descarga y decodificación de audio/vídeo.
+

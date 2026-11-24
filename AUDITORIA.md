@@ -1,12 +1,12 @@
 # Auditoría de Estudio de entrevistas
 
-Fecha: 24 de noviembre de 2026. Base revisada: `Estudio_Entrevistas_v0.01.zip`. Resultado de la revisión y correcciones: v0.02.
+Fecha: 24 de noviembre de 2026. Base revisada: `Estudio_Entrevistas_v0.01.zip`. Resultado de la revisión y correcciones: v0.03, con acceso del anfitrión y entrada por invitación.
 
 ## Dictamen
 
 La arquitectura sirve para una entrevista de dos personas con grabación en el dispositivo del entrevistador. GitHub Pages puede servir los archivos estáticos; el vídeo no necesita pasar por su alojamiento. OPFS permite escribir en almacenamiento privado del navegador mediante un worker local. No se han introducido bases de datos, Cloudflare, servicios facturados ni claves comerciales.
 
-La v0.01 no estaba validada para uso real y tenía defectos que podían interrumpir la conexión, bloquear el guardado o dejar una sesión sin salida visible. Se han corregido los defectos descritos abajo. La v0.02 sigue pendiente de validación audiovisual en un navegador operativo y de la publicación; las pruebas de lógica aprobadas no equivalen a una prueba completa de entrevista.
+La v0.01 no estaba validada para uso real y tenía defectos que podían interrumpir la conexión, bloquear el guardado o dejar una sesión sin salida visible. Se han corregido los defectos descritos abajo. La v0.03 se ha publicado y la prueba audiovisual en GitHub Actions pasó con dos contextos y medios sintéticos. Las comprobaciones no certifican móviles físicos, todas las redes ni duración de varias horas.
 
 No existe fundamento para prometer «ningún fallo». La conexión directa puede fallar en redes restrictivas y el sistema operativo del teléfono puede suspender una página. Son límites de esta arquitectura, no errores que se solucionen con otra capa de interfaz.
 
@@ -26,6 +26,8 @@ No existe fundamento para prometer «ningún fallo». La conexión directa puede
 | Media | Fallar al cerrar el writer impedía intentar recuperar el archivo. | Se aborta el writer y se intenta ofrecer el archivo parcial, identificado como interrumpido. No se garantiza que sea reproducible. |
 | Media | Se reutilizaba una instantánea antigua del archivo al descargar desde el historial. | Se solicita el archivo actual al pulsar Guardar. Los errores de eliminación y descarga se muestran. |
 | Media | La biblioteca se descargaba de un CDN en cada apertura. | PeerJS 1.5.5 y su licencia quedan incluidos en `vendor/`. La señalización sigue necesitando internet. |
+| Media | Cambiar de invitación con la página abierta podía conservar la vista de la sesión anterior. | La entrada recarga y vuelve a validar la invitación al cambiar el fragmento del enlace. |
+| Media | El MP4 sin códec explícito podía elegir VP9 y retrasar el primer bloque en Chrome. | Se prefiere MP4 AVC explícito; si no se admite, WebM antes que un MP4 de códec indeterminado. La prueba espera escritura efectiva en vez de un plazo fijo de 6,5 segundos. |
 | Mantenimiento | Código principal comprimido en líneas muy extensas y pruebas dependientes de rutas fijas. | Código formateado, selección configurable de Chromium y pruebas adicionales de regresión y conexión real. |
 
 ## Pruebas y evidencia
@@ -33,17 +35,28 @@ No existe fundamento para prometer «ningún fallo». La conexión directa puede
 Ejecutado en este entorno:
 
 - `node --check app.js`, `node --check storage-worker.js` y sintaxis de PeerJS incluido: correctos.
-- `node --test tests/test_regressions.cjs`: 18 pruebas aprobadas, 0 fallidas. Son pruebas de lógica con dobles de DOM, medios, señalización y almacenamiento. Cubren los casos enumerados en el archivo de pruebas; no prueban la cámara ni la red real.
+- `node --test tests/test_regressions.cjs`: 19 pruebas aprobadas, 0 fallidas. Son pruebas de lógica con dobles de DOM, medios, señalización y almacenamiento. Cubren los casos enumerados en el archivo de pruebas; no prueban la cámara ni la red real.
 - Compilación sintáctica Python de `tests/test_browser.py` y `tests/test_live.py`: correcta.
 - La prueba original de navegador se intentó ejecutar: Chromium terminó al arrancar con `socket() failed: Operation not permitted`. El proceso no llegó a abrir la aplicación. No se ha eludido esa restricción.
 
-Preparado, pendiente de ejecución:
+Ejecutado posteriormente en GitHub y producción:
 
-- Prueba de navegador con medios sintéticos, OPFS real, archivo descargado y análisis de pistas con ffprobe.
-- Dos contextos independientes con PeerJS real y WebRTC, admisión, grabación, salida del invitado, cierre, descarga, decodificación con ffmpeg y persistencia tras recargar.
-- Ejecución automática de ambas pruebas en GitHub Actions al subir a `main`. Un fallo de la prueba de señalización puede depender del servicio público o de la red del ejecutor y debe diagnosticarse; no debe ignorarse.
+- Batería final completa, ejecución 45350056966, trabajo 138293966446, commit `5214df37f8d478c0df73c987ad2daa6aabad9fd0`: correcta. Las 19 pruebas Node y las tres pruebas Python pasaron. Se verificaron contraseña incorrecta/correcta, acceso de invitado, rechazo de invitación incompleta, escritura real OPFS, exportación, decodificación y sesión PeerJS/WebRTC real. Resultado final: vídeo VP8 1280×720 y audio Opus.
+- Despliegue final, ejecución 45350055578: correcto.
 
-No verificado: URL publicada, entrevista entre redes físicas distintas, teléfonos reales Android/iOS, rendimiento sostenido durante horas, recuperación tras cierre abrupto y compatibilidad de exportación/reproducción en todos los reproductores. Los medios sintéticos y dos contextos en un mismo equipo no certifican esos puntos.
+- GitHub Actions, trabajo `real-signaling`, ejecución 45345841007, commit `3f20e261b6c09934d8dd7cdc89b2e66f6525a43f`: correcto. Apertura del anfitrión con contraseña de prueba, invitado por enlace sin contraseña, señalización PeerJS real, WebRTC, consentimiento/admisión, grabación y salida, cierre de pistas, persistencia OPFS tras recargar y descarga.
+- ffprobe identificó vídeo VP9 a 1280×720 y audio Opus; ffmpeg decodificó el archivo descargado sin error.
+- GitHub Pages, ejecución 45348194904: despliegue correcto. La URL HTTPS muestra la entrada con contraseña. Se compararon siete recursos publicados (HTML, acceso, estilos, worker, PeerJS y los dos paquetes cifrados) con los archivos locales: coincidencia byte a byte.
+- La comprobación criptográfica local del paquete publicado verificó la contraseña elegida, el rechazo de una contraseña incorrecta y de un paquete manipulado y la separación de claves de anfitrión/invitado. No se imprimieron ni publicaron claves ni contraseña.
+- La primera preparación de CI falló porque `ubuntu-latest` había pasado a Ubuntu 26.04, no compatible con la versión fijada de Playwright. Se fijó Ubuntu 24.04. Un trabajo adicional se canceló por agotar el plazo al instalar dependencias; se sustituyó la instalación redundante de paquetes del sistema por Chrome preinstalado y PyAV para las verificaciones. La batería final se completó correctamente.
+
+No verificado: entrevista en teléfonos físicos Android/iOS, participantes en redes físicas distintas, rendimiento sostenido durante horas y recuperación tras cierre abrupto. Dos contextos en un mismo ejecutor no certifican esos puntos.
+
+## Acceso añadido por petición del propietario
+
+La página publicada ofrece una entrada de anfitrión con contraseña y un acceso de invitado mediante enlace. Los paquetes se cifran con AES-GCM. La clave del anfitrión se deriva de la contraseña con PBKDF2 SHA-256, salt aleatorio y 310.000 iteraciones. La clave aleatoria de invitado solo se incluye en el paquete del anfitrión y en los enlaces emitidos. La contraseña no figura en los archivos publicados.
+
+No se añade autenticación de servidor ni protección contra copia de los fuentes públicos. Un atacante que descargue el paquete puede intentar adivinar contraseñas sin pasar por la interfaz; la protección depende de la contraseña elegida. Los enlaces se pueden compartir. Esta solución corresponde al acceso simbólico solicitado, sin cuentas, base de datos ni servicios de pago.
 
 ## Límites de viabilidad
 
@@ -55,10 +68,11 @@ No verificado: URL publicada, entrevista entre redes físicas distintas, teléfo
 6. **Privacidad.** Las invitaciones son credenciales compartidas de alta entropía, no identificación de las personas. La admisión es manual y el transporte usa WebRTC. El servicio de señalización y STUN pueden conocer metadatos de conexión; «grabación local» no significa ausencia total de comunicación con terceros.
 7. **Alojamiento.** GitHub Pages gratuito es adecuado al código estático de esta herramienta personal. Sus límites de alojamiento se aplican a la página y sus archivos; las entrevistas no se suben allí. No se plantea como SaaS comercial.
 
-## Publicación pendiente
+## Publicación
 
-Repositorio público independiente creado: https://github.com/jmconteni2/estudio-entrevistas . El usuario autorizó posponer el recordatorio de comprobación 2FA y se ha completado ese paso. La subida, ejecución de Actions y publicación se encuentran en curso; no se ha acreditado todavía una URL publicada.
-Siguientes pasos: subir esta versión, comprobar Actions, activar Pages `main`/raíz y ejecutar `APP_URL=<URL real mostrada por Pages> python tests/test_live.py` en un ejecutor con navegador operativo. Entregar solo una URL efectivamente publicada y comprobada.
+Repositorio: https://github.com/jmconteni2/estudio-entrevistas . Aplicación: https://jmconteni2.github.io/estudio-entrevistas/ . Pages sirve únicamente `/docs` de `main`; HTTPS está impuesto por GitHub. La raíz del repositorio es código de desarrollo y no debe seleccionarse como carpeta de publicación.
+
+El usuario autorizó expresamente posponer el recordatorio 2FA de GitHub. Se completó ese paso y la publicación sin cambiar la configuración 2FA, contratar servicios ni solicitar secretos de despliegue.
 
 ## Referencias técnicas consultadas
 
