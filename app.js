@@ -1342,6 +1342,7 @@ if (typeof ResizeObserver !== "undefined")
   new ResizeObserver(updateStage).observe($("stage"));
 $('stage').onclick=e=>{if(e.target===$('stage'))resetCameraFocus();};
 $('stage').onkeydown=e=>{if(e.key==='Escape')resetCameraFocus();};
+document.addEventListener('click',e=>{if(focusedCamera&&e.target?.closest&&!e.target.closest('.video')&&!e.target.closest('button,input,select'))resetCameraFocus();});
 window.addEventListener("resize", updateStage);
 updateStage();
 

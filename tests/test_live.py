@@ -114,7 +114,7 @@ try:
         host.locator('#focusRemote').click()
         assert host.evaluate('focusedCamera')=='remote'
         export_scene('focused')
-        host.locator('#stage').click(position={'x':5,'y':5})
+        host.locator('#stage').click(position={'x':100,'y':15})
         assert host.evaluate('focusedCamera') is None
         host.locator('#orientation').click()
         guest.locator('#orientation').click()
@@ -177,7 +177,7 @@ try:
             assert info['width']==1920 and info['height']==1080,info
             print(json.dumps(info))
         assert not errors, errors
-        print('PASS: invitación anticipada, nombre obligatorio y visible, cámaras y orientaciones independientes, composiciones exportadas HH/VV/mixtas, foco independiente, invitación terminada bloqueada tras recargar, invitación nueva válida, vídeos 1280x720 y 720x720 decodificados.')
+        print('PASS: invitación anticipada, nombre obligatorio y visible, cámaras y orientaciones independientes, composiciones exportadas HH/VV/mixtas, foco independiente, invitación terminada bloqueada tras recargar, invitación nueva válida, restauración de cámaras iguales y vídeos 1280x720 y 1920x1080 decodificados.')
         browser.close()
 finally:
     if server:
