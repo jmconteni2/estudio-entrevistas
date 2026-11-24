@@ -41,24 +41,40 @@ try:
             password=mobile.locator('#password')
             password.tap()
             assert password.evaluate('el => document.activeElement===el')
-            mobile.keyboard.type('incorrecta')
+            assert password.get_attribute('type')=='text'
+            assert password.evaluate("el => getComputedStyle(el).webkitTextSecurity==='disc'")
+            # Insert committed text as a software keyboard/IME does, rather
+            # than only generating desktop physical-key events.
+            mobile.keyboard.insert_text('inco')
+            mobile.keyboard.insert_text('rrecta')
             assert password.input_value()=='incorrecta'
             mobile.locator('#showPassword').tap()
-            assert password.get_attribute('type')=='text'
+            assert password.evaluate("el => getComputedStyle(el).webkitTextSecurity!=='disc'")
             assert password.input_value()=='incorrecta'
             assert password.evaluate('el => document.activeElement===el')
             mobile.locator('#showPassword').tap()
-            assert password.get_attribute('type')=='password'
+            assert password.evaluate("el => getComputedStyle(el).webkitTextSecurity==='disc'")
             mobile.locator('#unlock').tap()
             expect(mobile.locator('#accessMessage')).to_have_text('Contraseña incorrecta.')
             password.tap()
             mobile.keyboard.press('ControlOrMeta+A')
-            mobile.keyboard.type(os.environ['APP_PASSWORD'])
+            mobile.keyboard.insert_text(os.environ['APP_PASSWORD'])
             mobile.keyboard.press('Enter')
             mobile.locator('#studio').wait_for(state='visible',timeout=15000)
             expect(mobile.frame(name='studio').locator('#heading')).to_have_text('Prepara tu próxima entrevista.')
             mobile_ctx.close()
         print('PASS: acceso táctil del anfitrión a 360x640, 390x844 y 844x390; foco, escritura con teclado, mostrar/ocultar, rechazo y apertura con Enter.')
+        fallback_ctx=browser.new_context()
+        fallback_ctx.add_init_script("const original=CSS.supports.bind(CSS);CSS.supports=(...args)=>args[0]==='-webkit-text-security'?false:original(...args)")
+        fallback=fallback_ctx.new_page()
+        fallback.goto(url)
+        assert fallback.locator('#password').get_attribute('type')=='password'
+        fallback.locator('#showPassword').click()
+        assert fallback.locator('#password').get_attribute('type')=='text'
+        fallback.locator('#showPassword').click()
+        assert fallback.locator('#password').get_attribute('type')=='password'
+        fallback_ctx.close()
+        print('PASS: entrada IME en control de texto enmascarado; alternativa nativa segura sin soporte CSS; ojo accesible sin texto visible.')
         key=host.evaluate('window.ESTUDIO_GUEST_KEY')
         invite=url+'#room=entrevista-'+'a'*48+'&key='+'b'*48+'&access='+key
         guest=browser.new_page()

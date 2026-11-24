@@ -9,12 +9,27 @@ const unbase64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let busy=false;
 const passwordInput=document.getElementById('password');
 const showPassword=document.getElementById('showPassword');
-// Keep focus tied to a user gesture: mobile keyboards can ignore autofocus.
+// Some Android keyboards fail to insert text in a native password control.
+// Keep a stable plain-text editing surface where visual masking is supported.
+// Other engines retain the native password input so text is never exposed.
+const cssPasswordMask=!!(window.CSS && CSS.supports('-webkit-text-security','disc'));
+let passwordVisible=false;
+if(cssPasswordMask){
+ passwordInput.classList.add('password-masked');
+ passwordInput.type='text';
+}
+showPassword.addEventListener('pointerdown',event=>event.preventDefault());
 showPassword.addEventListener('click',()=>{
- const visible=passwordInput.type==='password';
- passwordInput.type=visible?'text':'password';
- showPassword.textContent=visible?'Ocultar':'Mostrar';
- showPassword.setAttribute('aria-pressed',String(visible));
+ passwordVisible=!passwordVisible;
+ if(cssPasswordMask){
+  passwordInput.classList.toggle('password-masked',!passwordVisible);
+ }else{
+  passwordInput.type=passwordVisible?'text':'password';
+ }
+ const label=passwordVisible?'Ocultar contraseña':'Mostrar contraseña';
+ showPassword.setAttribute('aria-label',label);
+ showPassword.title=label;
+ showPassword.setAttribute('aria-pressed',String(passwordVisible));
  passwordInput.focus();
 });
 async function envelope(role){

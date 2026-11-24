@@ -10,8 +10,8 @@
     <title>Lumen Interview</title>
     <link rel="icon" type="image/webp" href="assets/lumi-icon.webp" />
     <link rel="apple-touch-icon" href="assets/lumi-icon.webp" />
-    <link rel="stylesheet" href="style.css?v=0.6.1" />
-    <script defer src="access.js?v=0.6.1"></script>
+    <link rel="stylesheet" href="style.css?v=0.6.2" />
+    <script defer src="access.js?v=0.6.2"></script>
     <style>
       .access {
         max-width: 560px;
@@ -47,27 +47,37 @@
         position: relative;
         width: 100%;
         min-height: 52px;
-        padding-right: 88px;
+        padding-right: 52px;
         font-size: 16px;
         appearance: none;
         -webkit-appearance: none;
+        caret-color: #211b16;
+        -webkit-text-fill-color: #211b16;
         touch-action: manipulation;
         user-select: text;
         -webkit-user-select: text;
       }
+      #password.password-masked { -webkit-text-security: disc; }
       #showPassword {
         position: absolute;
         right: 5px;
         top: 5px;
-        width: 76px;
+        width: 42px;
         min-height: 42px;
         margin: 0;
         padding: 8px;
         color: #93552e;
-        background: #fff1e2;
+        background: transparent;
         border-radius: 9px;
         font-size: 12px;
       }
+      #showPassword svg {
+        width: 21px; height: 21px;
+        fill: none; stroke: currentColor; stroke-width: 1.8;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      #showPassword .eye-slash { display: none; }
+      #showPassword[aria-pressed="true"] .eye-slash { display: block; }
       @media (max-width: 640px) {
         .access {
           margin: 8vh auto;
@@ -100,7 +110,13 @@
               autocorrect="off" spellcheck="false" enterkeyhint="go"
               aria-label="Contraseña del anfitrión" required />
             <button id="showPassword" type="button" aria-controls="password"
-              aria-pressed="false">Mostrar</button>
+              aria-pressed="false" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                <path class="eye-slash" d="m3 3 18 18" />
+              </svg>
+            </button>
           </div>
           <button id="unlock" class="primary" type="submit">
             Entrar <span aria-hidden="true">→</span>
