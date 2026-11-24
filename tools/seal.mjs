@@ -119,6 +119,7 @@ await mkdir(path.join(root, "docs", "vendor"), { recursive: true });
 await seal("host", hostKey);
 await seal("guest", guestKey);
 for (const name of [
+  "assets/lumi-icon.webp",
   "style.css",
   "storage-worker.js",
   ".nojekyll",

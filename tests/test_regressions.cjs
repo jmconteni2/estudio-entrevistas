@@ -335,14 +335,15 @@ test("fin durante el arranque notifica y conserva archivo parcial", async () => 
   assert.equal(t.get("result").hidden, false);
   assert.match(t.get("resultInfo").textContent, /interrumpida/);
 });
-test("colgar la llamada detiene recursos y muestra reinicio", () => {
+test("colgar la llamada del invitado cierra sin ofrecer reinicio", () => {
   const t = setup("#room=x");
   t.run("stream={getTracks:()=>[{stop:()=>window.stopped=true}]}");
   const c = (t.ctx.c = new Events());
   t.run("bindCall(c)");
   c.emit("close");
   assert.equal(t.ctx.window.stopped, true);
-  assert.equal(t.get("again").hidden, false);
+  assert.equal(t.get("again").hidden, true);
+  assert.equal(t.get("guestEnd").hidden, false);
 });
 const workerSource = fs.readFileSync(
   require("node:path").join(__dirname, "../storage-worker.js"),
@@ -460,41 +461,126 @@ test("fallo de escritura en preflight aborta su worker", async () => {
   assert.equal(t.run("preparing"), false);
 });
 
-test("retirada del invitado antes de grabar permite admitir el siguiente", async () => {
+test("retirada del invitado antes de grabar finaliza la invitación", async () => {
+  const t = setup();
+  t.run("stream={getTracks:()=>[]};token='correcto'");
+  await t.run('openPeer("host")');
+  const c = (t.ctx.c = new Events());
+  t.run("bindConn(c)");
+  c.emit("data", { type: "request", token: "correcto", consent: true });
+  await flush();
+  c.close();
+  await flush();
+  assert.equal(t.run("ending"), true);
+  assert.equal(t.get("again").hidden, false);
+});
+test("se prefiere WebM por bloques a un MP4 con códec no especificado", () => {
+  const t = setup();
+  t.ctx.MediaRecorder.isTypeSupported = (type) =>
+    type === "video/mp4" || type === "video/webm;codecs=vp8,opus";
+  assert.equal(t.run("mime()"), "video/webm;codecs=vp8,opus");
+});
+
+test("crear enlace no solicita cámara ni abre una conexión", async () => {
+  const t = setup();
+  await t.run("create()");
+  assert.equal(t.mediaCalls, 0);
+  assert.equal(t.run("peer"), undefined);
+  assert.equal(t.get("invitation").hidden, false);
+  const link = t.get("link").value;
+  await t.run("create()");
+  assert.equal(t.get("link").value, link);
+});
+test("el anfitrión acepta automáticamente una invitación válida", async () => {
   const t = setup();
   t.run("stream={};token='correcto'");
   await t.run('openPeer("host")');
   const c = (t.ctx.c = new Events());
   t.run("bindConn(c)");
   c.emit("data", { type: "request", token: "correcto", consent: true });
-  await t.run("accept()");
-  c.emit("data", { type: "ready" });
-  c.close();
-  assert.equal(t.run("call"), null);
-  const d = (t.ctx.d = new Events());
-  t.run("bindConn(d)");
-  d.emit("data", { type: "request", token: "correcto", consent: true });
-  await t.run("accept()");
-  d.emit("data", { type: "ready" });
-  assert.equal(t.run("peer.callCount"), 2);
+  await flush();
+  assert.ok(c.sent.some((x) => x.type === "accept"));
+  assert.equal(t.run("connecting"), true);
+});
+test("espera automática hasta que se conecta el anfitrión", () => {
+  const t = setup("#room=x");
+  t.run("waitForHost()");
+  assert.equal(
+    t.get("waitingTitle").textContent,
+    "En espera de que el anfitrión se conecte.",
+  );
+  assert.ok([...t.timeouts.values()].some((x) => x.ms === 5000));
+  t.run("cleanup()");
+  assert.equal(t.run("guestWaiting"), false);
 });
 
-test("se prefiere WebM por bloques a un MP4 con códec no especificado", () => {
- const t=setup();
- t.ctx.MediaRecorder.isTypeSupported=type=>type==='video/mp4'||type==='video/webm;codecs=vp8,opus';
- assert.equal(t.run('mime()'),'video/webm;codecs=vp8,opus');
+test("el invitado debe indicar su nombre antes de pedir cámara", async () => {
+  const t = setup(
+    "#room=entrevista-" + "a".repeat(48) + "&key=" + "b".repeat(48),
+  );
+  t.get("name").value = "";
+  t.get("prepare").onclick();
+  await flush();
+  assert.equal(t.mediaCalls, 0);
+  assert.match(t.get("notice").textContent, /nombre/);
 });
-
-test("crear enlace no solicita cámara ni abre una conexión", async()=>{
- const t=setup();await t.run('create()');assert.equal(t.mediaCalls,0);assert.equal(t.run('peer'),undefined);assert.equal(t.get('invitation').hidden,false);
- const link=t.get('link').value;await t.run('create()');assert.equal(t.get('link').value,link);
+test("la invitación finalizada queda marcada y no ofrece volver", () => {
+  const t = setup(
+    "#room=entrevista-" + "a".repeat(48) + "&key=" + "b".repeat(48),
+  );
+  const saved = new Map();
+  t.ctx.localStorage.getItem = (k) => saved.get(k) || null;
+  t.ctx.localStorage.setItem = (k, v) => saved.set(k, v);
+  t.run("cleanup()");
+  assert.equal(t.run("spentInvitation()"), true);
+  assert.equal(t.get("again").hidden, true);
+  assert.equal(t.get("guestEnd").hidden, false);
 });
-test("el anfitrión acepta automáticamente una invitación válida",async()=>{
- const t=setup();t.run("stream={};token='correcto'");await t.run('openPeer("host")');
- const c=t.ctx.c=new Events();t.run('bindConn(c)');c.emit('data',{type:'request',token:'correcto',consent:true});await flush();
- assert.ok(c.sent.some(x=>x.type==='accept'));assert.equal(t.run('connecting'),true);
+test("composiciones horizontales, verticales y mixtas dentro del vídeo", () => {
+  const t = setup();
+  for (const lo of ["portrait", "landscape"])
+    for (const ro of ["portrait", "landscape"])
+      for (const focus of [null, "local", "remote"]) {
+        const { w, h } = t.run(`recordingSize('${lo}','${ro}',720)`);
+        const result = t.run(
+          `sceneLayout(${w},${h},'${lo}','${ro}',${JSON.stringify(focus)})`,
+        );
+        for (const b of Object.values(result.boxes)) {
+          assert.ok(b.w > 0 && b.h > 0);
+          assert.ok(b.x >= 0 && b.y >= 0);
+          assert.ok(b.x + b.w <= w + 0.1 && b.y + b.h <= h + 0.1);
+        }
+      }
+  const p = t.run("sceneLayout(720,720,'portrait','portrait')");
+  assert.equal(p.boxes.local.y, p.boxes.remote.y);
+  assert.ok(p.boxes.local.x + p.boxes.local.w < p.boxes.remote.x);
 });
-test("espera automática hasta que se conecta el anfitrión",()=>{
- const t=setup('#room=x');t.run('waitForHost()');assert.equal(t.get('waitingTitle').textContent,'En espera de que el anfitrión se conecte.');
- assert.ok([...t.timeouts.values()].some(x=>x.ms===5000));t.run('cleanup()');assert.equal(t.run('guestWaiting'),false);
+test("cada participante cambia el foco de su propia vista", () => {
+  const t = setup();
+  t.run("focusCamera('local')");
+  assert.equal(t.run("focusedCamera"), "local");
+  t.run("focusCamera('remote')");
+  assert.equal(t.run("focusedCamera"), "remote");
+});
+test("la pantalla solicita mantenerse activa y libera el bloqueo al acabar", async () => {
+  const t = setup();
+  let calls = 0;
+  const sentinel = {
+    released: false,
+    async release() {
+      this.released = true;
+    },
+  };
+  t.ctx.navigator.wakeLock = {
+    async request(type) {
+      assert.equal(type, "screen");
+      calls++;
+      return sentinel;
+    },
+  };
+  await t.run("keepAwake()");
+  await t.run("keepAwake()");
+  assert.equal(calls, 1);
+  t.run("cleanup()");
+  assert.equal(sentinel.released, true);
 });

@@ -2,6 +2,7 @@
 Set APP_URL to test an HTTPS deployment; defaults to a temporary local server.
 This does not certify two different physical networks or real phones.
 """
+import base64
 import functools
 import http.server
 import json
@@ -65,6 +66,7 @@ try:
             guest_top.locator('#studio').wait_for(state='visible',timeout=20000)
             guest=guest_top.frame(name='studio')
             guest.locator('#prepare').wait_for(timeout=10000)
+        guest.locator('#name').fill('Invitada de prueba')
         guest.locator('#prepare').click()
         guest.locator('#waitingTitle').filter(has_text='En espera de que el anfitrión se conecte.').wait_for(timeout=25000)
         guest_top.screenshot(path=str(results/'guest-waiting-mobile.png'),full_page=True)
@@ -79,18 +81,48 @@ try:
         assert guest.evaluate('audio.state')=='running', 'Audio del invitado suspendido'
         assert guest.evaluate('!!playbackSource'), 'No se ha conectado la salida de audio'
         assert guest.locator('#remoteName').inner_text()=='Entrevistador automático'
+        assert host.locator('#remoteName').inner_text()=='Invitada de prueba'
+        assert guest.locator('#localName').inner_text()=='Invitada de prueba'
         assert 'activar su sonido' not in guest.locator('#notice').inner_text()
         host.wait_for_function('written > 10000', timeout=20000)
         assert host.evaluate('remoteStream.getVideoTracks().some(t=>t.readyState==="live")')
         assert guest.evaluate('remoteStream.getAudioTracks().some(t=>t.readyState==="live")')
         guest.wait_for_function('document.getElementById("remote").readyState>=2 && !document.getElementById("remote").paused',timeout=15000)
         host.wait_for_function('document.getElementById("remote").readyState>=2 && !document.getElementById("remote").paused',timeout=15000)
-        host.wait_for_timeout(6500)
+        def export_scene(label):
+            host.wait_for_timeout(800)
+            image=host.evaluate('canvas.toDataURL("image/png")')
+            (results/('export-'+label+'.png')).write_bytes(base64.b64decode(image.split(',',1)[1]))
+        export_scene('mixed')
+        guest.locator('#orientation').click()
+        host.wait_for_function("remoteOrientation==='landscape'")
+        assert host.evaluate('localOrientation')=='landscape'
+        export_scene('horizontal')
+        host.locator('#orientation').click()
+        guest.wait_for_function("remoteOrientation==='portrait'")
+        assert guest.evaluate('localOrientation')=='landscape'
+        export_scene('mixed-reversed')
+        guest.locator('#orientation').click()
+        host.wait_for_function("remoteOrientation==='portrait'")
+        export_scene('vertical')
+        guest.locator('#focusLocal').click()
+        assert guest.evaluate('focusedCamera')=='local'
+        assert host.evaluate('focusedCamera') is None, 'La vista del invitado alteró la grabación'
+        host.locator('#focusRemote').click()
+        assert host.evaluate('focusedCamera')=='remote'
+        export_scene('focused')
         guest_top.screenshot(path=str(results/'guest-recording-mobile.png'),full_page=True)
         host_top.screenshot(path=str(results/'host-recording.png'),full_page=True)
-        # Guest departure must finalize the host recording and stop both cameras.
-        guest.locator('#leave').click()
-        host.locator('#result').wait_for(state='visible', timeout=20000)
+        # Ending the interview retires the guest view. Reload must not offer entry again.
+        host.locator('#finish').click()
+        host.locator('#result').wait_for(state='visible',timeout=20000)
+        guest.locator('#guestEnd').wait_for(state='visible',timeout=10000)
+        assert guest.locator('#again').is_hidden()
+        guest_top.reload()
+        guest_top.locator('#studio').wait_for(state='visible')
+        guest=guest_top.frame(name='studio')
+        guest.locator('#guestEnd').wait_for(state='visible')
+        assert guest.locator('#prepare').is_hidden()
         assert host.evaluate('stream.getTracks().every(t=>t.readyState==="ended")')
         with host_top.expect_download() as download:
             host.locator('#download').click()
@@ -100,12 +132,39 @@ try:
             assert target.stat().st_size > 10000
             info = check_media(target)
             print(json.dumps(info))
-        # Reload must retain OPFS recording and permit another download.
-        host = unlock_host(host_top)
+        # A fresh invitation permits a new session; two vertical cameras produce a square export.
+        host=unlock_host(host_top)
         host.locator('#libraryToggle').click()
-        host.get_by_role('button', name='Guardar vídeo', exact=True).wait_for(timeout=10000)
+        host.get_by_role('button',name='Guardar vídeo',exact=True).wait_for(timeout=10000)
+        host.locator('#create').click()
+        new_invitation=host.locator('#link').input_value()
+        assert new_invitation!=invitation
+        host.locator('#prepare').click()
+        host.locator('#orientation').wait_for(state='visible',timeout=15000)
+        host.locator('#orientation').click()
+        guest_top.close()
+        guest_top=guest_ctx.new_page();guest_top.on('pageerror',lambda e:errors.append(str(e)))
+        guest_top.goto(new_invitation)
+        guest_top.locator('#studio').wait_for(state='visible')
+        guest=guest_top.frame(name='studio')
+        guest.locator('#name').fill('Segunda invitación')
+        guest.locator('#prepare').click()
+        host.locator('#recording').wait_for(state='visible',timeout=30000)
+        host.wait_for_function('written>10000',timeout=20000)
+        assert host.evaluate('canvas.width===canvas.height'), 'El vídeo vertical doble no es cuadrado'
+        export_scene('square-vertical')
+        guest.locator('#leave').click()
+        host.locator('#result').wait_for(state='visible',timeout=20000)
+        with host_top.expect_download() as download2:
+            host.locator('#download').click()
+        with tempfile.TemporaryDirectory() as tmp:
+            target=pathlib.Path(tmp)/download2.value.suggested_filename
+            download2.value.save_as(target)
+            info=check_media(target)
+            assert info['width']==720 and info['height']==720,info
+            print(json.dumps(info))
         assert not errors, errors
-        print('PASS: invitación anticipada sin cámara, anfitrión cerrado y reabierto, invitado espera y entra automáticamente sin más botones, WebRTC real, grabación, cierre, descarga y decodificación. Diseño móvil sin desbordamiento.')
+        print('PASS: invitación anticipada, nombre obligatorio y visible, cámaras y orientaciones independientes, composiciones exportadas HH/VV/mixtas, foco independiente, invitación terminada bloqueada tras recargar, invitación nueva válida, vídeos 1280x720 y 720x720 decodificados.')
         browser.close()
 finally:
     if server:

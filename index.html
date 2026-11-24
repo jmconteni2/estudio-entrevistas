@@ -7,33 +7,23 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="referrer" content="no-referrer" />
-    <title>Estudio de entrevistas</title>
+    <title>Lumen Interview</title>
+    <link rel="icon" type="image/webp" href="assets/lumi-icon.webp" />
+    <link rel="apple-touch-icon" href="assets/lumi-icon.webp" />
     <link rel="stylesheet" href="style.css" />
     <script defer src="vendor/peerjs-1.5.5.min.js"></script>
     <script defer src="app.js"></script>
   </head>
   <body>
     <header>
-      <a class="brand" href="#" aria-label="Estudio de entrevistas"
-        ><span class="brand-icon" aria-hidden="true"
-          ><svg viewBox="0 0 32 32" fill="none">
-            <rect
-              x="5"
-              y="7"
-              width="15"
-              height="18"
-              rx="5"
-              stroke="currentColor"
-              stroke-width="2.5"
-            />
-            <path
-              d="m21 12 6-3v14l-6-3"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linejoin="round"
-            /></svg></span
-        ><span><small>ESTUDIO</small><strong>Entrevistas</strong></span></a
-      ><span id="status" role="status">Tu estudio</span>
+      <div class="brand" aria-label="Lumen Interview">
+        <img
+          class="brand-icon"
+          src="assets/lumi-icon.webp"
+          alt="Lumi con micrófono"
+        /><span><small>LUMEN</small><strong>Interview</strong></span>
+      </div>
+      <span id="status" role="status">Tu estudio</span>
     </header>
     <main>
       <section id="intro" class="setup-card">
@@ -90,13 +80,40 @@
           Entrar al estudio <span aria-hidden="true">→</span>
         </button>
       </section>
-      <section class="stage" id="stage" hidden>
-        <div class="video local-video">
+      <section
+        class="stage"
+        id="stage"
+        hidden
+        aria-label="Composición de las cámaras"
+      >
+        <div class="scene-brand">
+          <img src="assets/lumi-icon.webp" alt="" /><span>Lumen Interview</span>
+        </div>
+        <div class="video local-video" id="localBox">
           <video id="local" muted autoplay playsinline></video
+          ><button
+            id="focusLocal"
+            class="camera-focus"
+            aria-label="Mostrar mi cámara como principal"
+            aria-pressed="false"
+          ></button
+          ><button
+            id="orientation"
+            class="orientation-toggle"
+            title="Cambiar orientación de tu cámara"
+            aria-label="Cambiar orientación de tu cámara"
+          >
+            ▭</button
           ><span id="localName">Tú</span>
         </div>
         <div class="video" id="remoteBox">
-          <video id="remote" autoplay playsinline></video>
+          <video id="remote" muted autoplay playsinline></video
+          ><button
+            id="focusRemote"
+            class="camera-focus"
+            aria-label="Mostrar la otra cámara como principal"
+            aria-pressed="false"
+          ></button>
           <div id="stageMessage" class="stage-message">
             <span class="waiting-orbit" aria-hidden="true"></span>
             <h2 id="waitingTitle">Todo listo por aquí.</h2>
@@ -126,7 +143,6 @@
             ><output id="clock">00:00:00</output><small id="bytes"></small
             ><button id="finish" class="danger compact">Finalizar</button>
           </div>
-          <p class="session-hint">Mantén la pantalla encendida.</p>
         </div>
       </section>
       <section id="result" class="result-card" hidden>
@@ -136,6 +152,14 @@
         <button id="download" class="primary">
           Descargar vídeo <span aria-hidden="true">↓</span>
         </button>
+      </section>
+      <section id="guestEnd" class="result-card" hidden>
+        <img class="end-logo" src="assets/lumi-icon.webp" alt="Lumi" />
+        <h2>La entrevista ha terminado.</h2>
+        <p>
+          Gracias por participar. Para otra entrevista necesitarás una nueva
+          invitación.
+        </p>
       </section>
       <button id="again" class="secondary" hidden>Nueva entrevista</button>
       <div class="library-area" id="library">

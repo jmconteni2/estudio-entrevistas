@@ -42,6 +42,9 @@ try:
         assert frame.evaluate('window.ESTUDIO_MODE')=='guest'
         assert frame.evaluate('window.ESTUDIO_GUEST_KEY') is None
         assert frame.locator('#create').is_hidden()
+        frame.locator('#prepare').click()
+        expect(frame.locator('#notice')).to_have_text('Escribe tu nombre para entrar.')
+        assert frame.locator('#stage').is_hidden()
         guest.goto(url+'#room=entrevista-'+'a'*48+'&key='+'b'*48)
         expect(guest.locator('#accessMessage')).to_have_text('La invitación no es válida o está incompleta.')
         assert guest.locator('#studio').is_hidden()

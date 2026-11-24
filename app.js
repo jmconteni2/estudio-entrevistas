@@ -66,6 +66,255 @@ const mimeTypes = [
 function mime() {
   return mimeTypes.find((x) => MediaRecorder.isTypeSupported(x));
 }
+let localOrientation =
+  typeof innerWidth === "number" && innerHeight > innerWidth
+    ? "portrait"
+    : "landscape";
+let remoteOrientation = "landscape",
+  focusedCamera = null;
+const validOrientation = (v) => v === "portrait" || v === "landscape";
+const cameraRatio = (o) => (o === "portrait" ? 9 / 16 : 16 / 9);
+function recordingSize(lo, ro, quality) {
+  const h = quality === 480 ? 480 : 720;
+  return lo === "portrait" && ro === "portrait"
+    ? { w: h, h }
+    : { w: h === 720 ? 1280 : 854, h };
+}
+function sceneLayout(w, h, lo, ro, focus = null) {
+  const m = Math.min(w, h) * 0.045,
+    orientation = { local: lo, remote: ro };
+  let boxes = {};
+  if (focus === "local" || focus === "remote") {
+    const secondary = focus === "local" ? "remote" : "local",
+      ratio = cameraRatio(orientation[focus]),
+      ratio2 = cameraRatio(orientation[secondary]);
+    const ph = Math.min(h * 0.78, (w * 0.84) / ratio),
+      pw = ph * ratio;
+    const sh = Math.min(h * 0.34, (w * 0.3) / ratio2),
+      sw = sh * ratio2;
+    boxes[focus] = { x: m, y: (h - ph) / 2 + h * 0.02, w: pw, h: ph };
+    boxes[secondary] = { x: w - m - sw, y: h - m - sh, w: sw, h: sh };
+    return { boxes, order: [focus, secondary] };
+  }
+  if (lo === "portrait" && ro === "portrait") {
+    const bh = Math.min(h * 0.78, (w - 3 * m) / 2 / (9 / 16)),
+      bw = (bh * 9) / 16,
+      x = (w - 2 * bw - m) / 2,
+      y = (h - bh) / 2 + h * 0.03;
+    boxes = {
+      local: { x, y, w: bw, h: bh },
+      remote: { x: x + bw + m, y, w: bw, h: bh },
+    };
+  } else if (lo === "landscape" && ro === "landscape") {
+    const aw = Math.min(w * 0.5, (h * 0.52 * 16) / 9),
+      ah = (aw * 9) / 16,
+      bw = Math.min(w * 0.57, (h * 0.58 * 16) / 9),
+      bh = (bw * 9) / 16;
+    boxes = {
+      local: { x: m, y: h * 0.12, w: aw, h: ah },
+      remote: { x: w - m - bw, y: h - m - bh, w: bw, h: bh },
+    };
+  } else {
+    const ph = h * 0.78,
+      pw = (ph * 9) / 16,
+      lw = w - pw - 3 * m,
+      lh = (lw * 9) / 16;
+    const p = { x: m, y: h * 0.15, w: pw, h: ph },
+      l = { x: pw + 2 * m, y: (h - lh) / 2 + h * 0.04, w: lw, h: lh };
+    if (lo === "portrait") boxes = { local: p, remote: l };
+    else boxes = { local: { ...l, x: m }, remote: { ...p, x: w - m - pw } };
+  }
+  return { boxes, order: ["local", "remote"] };
+}
+function updateStage() {
+  const stage = $("stage");
+  if (!stage?.style || !stage.clientWidth) return;
+  stage.style.aspectRatio =
+    active && canvas
+      ? canvas.width + " / " + canvas.height
+      : localOrientation === "portrait" && remoteOrientation === "portrait"
+        ? "1 / 1"
+        : "16 / 9";
+  const w = stage.clientWidth,
+    h = stage.clientHeight || (w * 9) / 16,
+    layout = sceneLayout(
+      w,
+      h,
+      localOrientation,
+      remoteOrientation,
+      focusedCamera,
+    );
+  for (const [id, box] of Object.entries(layout.boxes)) {
+    const tile = $(id === "local" ? "localBox" : "remoteBox");
+    Object.assign(tile.style, {
+      left: box.x + "px",
+      top: box.y + "px",
+      width: box.w + "px",
+      height: box.h + "px",
+      zIndex: String(layout.order.indexOf(id) + 1),
+    });
+    $(id === "local" ? "focusLocal" : "focusRemote")?.setAttribute?.(
+      "aria-pressed",
+      String(focusedCamera === id),
+    );
+  }
+  $("orientation").textContent = localOrientation === "portrait" ? "▯" : "▭";
+  $("orientation").title =
+    localOrientation === "portrait"
+      ? "Cambiar tu cámara a horizontal"
+      : "Cambiar tu cámara a vertical";
+  $("orientation").setAttribute?.("aria-label", $("orientation").title);
+}
+function focusCamera(which) {
+  focusedCamera = which;
+  updateStage();
+  audio?.resume().catch(fail);
+  $(which)
+    .play()
+    .catch(() => {});
+}
+async function toggleOrientation() {
+  localOrientation = localOrientation === "portrait" ? "landscape" : "portrait";
+  updateStage();
+  send({ type: "orientation", value: localOrientation });
+  const track = stream?.getVideoTracks()[0];
+  if (track?.applyConstraints) {
+    try {
+      await track.applyConstraints({
+        aspectRatio: { ideal: cameraRatio(localOrientation) },
+        width: { ideal: localOrientation === "portrait" ? 720 : 1280 },
+        height: { ideal: localOrientation === "portrait" ? 1280 : 720 },
+      });
+    } catch {
+      /* Canvas still applies the selected frame without rotating the image. */
+    }
+  }
+}
+let compositionLogo = null;
+if (typeof Image !== "undefined") {
+  compositionLogo = new Image();
+  compositionLogo.src = new URL("assets/lumi-icon.webp", document.baseURI).href;
+}
+function roundedPath(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function paintComposition(ctx, w, h) {
+  const bg = ctx.createLinearGradient(0, 0, w, h);
+  bg.addColorStop(0, "#23201b");
+  bg.addColorStop(0.55, "#121211");
+  bg.addColorStop(1, "#33251b");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  const layout = sceneLayout(
+      w,
+      h,
+      localOrientation,
+      remoteOrientation,
+      focusedCamera,
+    ),
+    scale = w / 1280;
+  for (const id of layout.order) {
+    const b = layout.boxes[id];
+    ctx.save();
+    ctx.shadowColor = "#0009";
+    ctx.shadowBlur = 22 * scale;
+    ctx.shadowOffsetY = 10 * scale;
+    roundedPath(ctx, b.x, b.y, b.w, b.h, 15 * scale);
+    ctx.fillStyle = "#211e1b";
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    roundedPath(ctx, b.x, b.y, b.w, b.h, 15 * scale);
+    ctx.clip();
+    drawVideo(ctx, $(id), b.x, b.y, b.w, b.h, true);
+    ctx.restore();
+    ctx.save();
+    roundedPath(ctx, b.x, b.y, b.w, b.h, 15 * scale);
+    ctx.strokeStyle = "#efaa65";
+    ctx.lineWidth = Math.max(1, 2 * scale);
+    ctx.stroke();
+    let name =
+      $(id === "local" ? "localName" : "remoteName").textContent ||
+      (id === "local" ? "Anfitrión" : "Invitado");
+    const font = Math.max(11, 16 * scale);
+    ctx.font = "600 " + font + "px system-ui";
+    const max = b.w - 30 * scale;
+    while (ctx.measureText(name).width > max && name.length > 2)
+      name = name.slice(0, -2) + "…";
+    const nw = Math.min(
+        max + 12 * scale,
+        ctx.measureText(name).width + 24 * scale,
+      ),
+      nh = 30 * scale;
+    roundedPath(
+      ctx,
+      b.x + 12 * scale,
+      b.y + b.h - nh - 12 * scale,
+      nw,
+      nh,
+      8 * scale,
+    );
+    ctx.fillStyle = "#141311df";
+    ctx.fill();
+    ctx.fillStyle = "#fff6e9";
+    ctx.fillText(name, b.x + 24 * scale, b.y + b.h - 22 * scale);
+    ctx.restore();
+  }
+  const fs = Math.max(12, 21 * scale),
+    icon = 40 * scale,
+    bx = w - 235 * scale,
+    by = 23 * scale;
+  if (compositionLogo?.complete && compositionLogo.naturalWidth) {
+    ctx.save();
+    roundedPath(ctx, bx, by, icon, icon, 11 * scale);
+    ctx.clip();
+    ctx.drawImage(compositionLogo, bx, by, icon, icon);
+    ctx.restore();
+  }
+  ctx.font = "600 " + fs + "px system-ui";
+  ctx.fillStyle = "#fff2de";
+  ctx.fillText("Lumen Interview", bx + icon + 10 * scale, by + 27 * scale);
+  ctx.save();
+  ctx.globalAlpha = Date.now() % 1400 < 700 ? 1 : 0.35;
+  ctx.fillStyle = "#ed5261";
+  ctx.beginPath();
+  ctx.arc(35 * scale, 42 * scale, 5 * scale, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.font = "600 " + Math.max(10, 14 * scale) + "px system-ui";
+  ctx.fillStyle = "#fff2de";
+  ctx.fillText("EN VIVO", 49 * scale, 47 * scale);
+}
+function spentInvitation() {
+  try {
+    return (
+      validRoom(roomParam) &&
+      validToken(tokenParam) &&
+      localStorage.getItem("lumen-ended:" + roomParam) === tokenParam
+    );
+  } catch {
+    return false;
+  }
+}
+function closeGuestInvitation() {
+  if (!guest) return;
+  try {
+    localStorage.setItem("lumen-ended:" + roomParam, tokenParam);
+  } catch {}
+  show("guestEnd");
+  show("intro", false);
+  show("again", false);
+  notice("");
+  status("Entrevista finalizada");
+}
+
 function fail(e) {
   notice(e?.message || String(e));
   status("Revisar conexión");
@@ -76,19 +325,27 @@ function send(obj) {
 function stopTracks(s) {
   s?.getTracks().forEach((t) => t.stop());
 }
-function setRemote(s){
- const video=$('remote'),changed=video.srcObject!==s;
- remoteStream=s;video.muted=true;
- if(changed)video.srcObject=s;
- if(audio&&s.getAudioTracks().length&&(changed||!playbackSource)){
-  playbackSource?.disconnect();playbackSource=audio.createMediaStreamSource(s);playbackSource.connect(audio.destination);
- }
- if(changed||video.paused)video.play().catch(e=>{
-  if(e.name==='AbortError'||ending||video.srcObject!==s)return;
-  notice('Pulsa sobre el vídeo si no se muestra la imagen.');
- });
+function setRemote(s) {
+  const video = $("remote"),
+    changed = video.srcObject !== s;
+  remoteStream = s;
+  video.muted = true;
+  if (changed) video.srcObject = s;
+  if (audio && s.getAudioTracks().length && (changed || !playbackSource)) {
+    playbackSource?.disconnect();
+    playbackSource = audio.createMediaStreamSource(s);
+    playbackSource.connect(audio.destination);
+  }
+  if (changed || video.paused)
+    video.play().catch((e) => {
+      if (e.name === "AbortError" || ending || video.srcObject !== s) return;
+      notice("Pulsa sobre el vídeo si no se muestra la imagen.");
+    });
 }
-$('remote').onclick=()=>{audio?.resume().catch(fail);$('remote').play().catch(fail);};
+$("remote").onclick = () => {
+  audio?.resume().catch(fail);
+  $("remote").play().catch(fail);
+};
 function setState(value) {
   if (document.body?.dataset) document.body.dataset.state = value;
 }
@@ -97,9 +354,11 @@ function waitingMessage(title, text = "") {
   $("waitingText").textContent = text;
   show("stageMessage");
 }
-async function keepAwake(){
- if(wake&&!wake.released)return;
- try{wake=await navigator.wakeLock?.request('screen');}catch{}
+async function keepAwake() {
+  if (wake && !wake.released) return;
+  try {
+    wake = await navigator.wakeLock?.request("screen");
+  } catch {}
 }
 function waitForHost() {
   if (ending || admitted || rejected) return;
@@ -182,7 +441,7 @@ async function prepare() {
       throw Error(
         "No se ha podido cargar PeerJS. Comprueba internet y recarga.",
       );
-    if (guest && !$("consent").checked)
+    if (guest && (!$("consent").checked || !$("name").value.trim()))
       throw Error("Introduce tu nombre y acepta la grabación.");
     audio = new AudioContext();
     await audio.resume();
@@ -212,8 +471,9 @@ async function prepare() {
     }
     stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
+        width: { ideal: localOrientation === "portrait" ? 720 : 1280 },
+        height: { ideal: localOrientation === "portrait" ? 1280 : 720 },
+        aspectRatio: { ideal: cameraRatio(localOrientation) },
         frameRate: { ideal: 25, max: 30 },
       },
       audio: {
@@ -229,6 +489,7 @@ async function prepare() {
     $("prepare").disabled = true;
     status("Cámara preparada");
     show("stage");
+    updateStage();
     show("intro", false);
     setState("studio");
     if (guest) {
@@ -353,7 +614,7 @@ function bindCall(c) {
     } else if (guest) {
       cleanup();
       show("recording", false);
-      show("again");
+      show("again", !guest);
     } else if (!guest && !pending) {
       show("waiting", false);
       show("create", false);
@@ -378,6 +639,8 @@ function bindConn(c) {
         return;
       }
       conn = c;
+      if (validOrientation(d.orientation)) remoteOrientation = d.orientation;
+      updateStage();
       $("remoteName").textContent = String(d.name || "Invitado").slice(0, 60);
       $("request").textContent =
         $("remoteName").textContent + " solicita entrar y acepta la grabación.";
@@ -385,14 +648,20 @@ function bindConn(c) {
       accept().catch(fail);
     }
     if (c !== conn) return;
+    if (d.type === "orientation" && validOrientation(d.value)) {
+      remoteOrientation = d.value;
+      updateStage();
+    }
     if (guest && !admitted && d.type === "accept") {
       if (!$("consent").checked) {
         send({ type: "end" });
         cleanup();
-        show("again");
+        show("again", !guest);
         return;
       }
       admitted = true;
+      if (validOrientation(d.orientation)) remoteOrientation = d.orientation;
+      updateStage();
       $("remoteName").textContent = String(d.name || "Anfitrión").slice(0, 60);
       send({ type: "ready" });
       status("Estableciendo videollamada");
@@ -414,7 +683,7 @@ function bindConn(c) {
       notice("La entrevista ha terminado o ya hay otra persona conectada.");
       c.close();
       cleanup();
-      show("again");
+      show("again", !guest);
     }
     if (guest && admitted && d.type === "recording") {
       show("recording");
@@ -423,7 +692,7 @@ function bindConn(c) {
       startTime = Date.now();
       clearInterval(timer);
       timer = setInterval(tick, 1000);
-      status("Entrevista en curso");
+      status("En vivo");
     }
     if (d.type === "end") {
       if (guest) {
@@ -432,7 +701,7 @@ function bindConn(c) {
         notice("La entrevista ha terminado.");
         show("recording", false);
         show("leave", false);
-        show("again");
+        show("again", !guest);
       } else finish(false).catch(fail);
     }
   });
@@ -450,7 +719,7 @@ function bindConn(c) {
       audio = null;
       conn = null;
       show("waiting", false);
-      status("Esperando al invitado");
+      finish(false).catch(fail);
     } else if (guest && !admitted) {
       waitForHost();
     } else {
@@ -484,7 +753,10 @@ async function join() {
     fail(Error("Invitación no válida."));
     return;
   }
-  if (!$("name").value.trim()) $("name").value = "Invitado";
+  if (!$("name").value.trim()) {
+    fail(Error("Escribe tu nombre para entrar."));
+    return;
+  }
   joining = true;
   try {
     if (!$("consent").checked || !$("name").value.trim())
@@ -541,6 +813,7 @@ async function join() {
         token: tokenParam,
         name: $("name").value.trim(),
         consent: true,
+        orientation: localOrientation,
       });
       status("Conectando");
       waitingMessage("Conectando tu entrevista…");
@@ -559,7 +832,11 @@ async function accept() {
     show("waiting", false);
     audio = audio || new AudioContext();
     await audio.resume();
-    send({ type: "accept", name: $("name").value.trim() || "Anfitrión" });
+    send({
+      type: "accept",
+      name: $("name").value.trim() || "Anfitrión",
+      orientation: localOrientation,
+    });
     status("Conectando cámaras");
     const id = ++sessionId;
     setTimeout(() => {
@@ -583,13 +860,16 @@ async function accept() {
     notice("No se pudo iniciar la conexión. Vuelve a entrar al estudio.");
   }
 }
-function drawVideo(ctx, v, x, y, w, h) {
+function drawVideo(ctx, v, x, y, w, h, cover = false) {
   if (v.readyState < 2 || !v.videoWidth) {
     ctx.fillStyle = "#18243a";
     ctx.fillRect(x, y, w, h);
     return;
   }
-  const scale = Math.min(w / v.videoWidth, h / v.videoHeight),
+  const scale = (cover ? Math.max : Math.min)(
+      w / v.videoWidth,
+      h / v.videoHeight,
+    ),
     dw = v.videoWidth * scale,
     dh = v.videoHeight * scale;
   ctx.drawImage(v, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
@@ -612,8 +892,11 @@ async function beginRecording() {
   if (!fmt) throw Error("No hay formato de vídeo compatible.");
   const dir = await storage();
   if (ending) return;
-  const h = Number($("quality").value),
-    w = h === 720 ? 1280 : 854;
+  const { w, h } = recordingSize(
+    localOrientation,
+    remoteOrientation,
+    Number($("quality").value),
+  );
   filename =
     safeName($("title").value) +
     "_" +
@@ -636,10 +919,7 @@ async function beginRecording() {
   function draw(t) {
     if (t - last >= 39) {
       last = t;
-      ctx.fillStyle = "#0a101b";
-      ctx.fillRect(0, 0, w, h);
-      drawVideo(ctx, $("local"), 0, 0, w / 2, h);
-      drawVideo(ctx, $("remote"), w / 2, 0, w / 2, h);
+      paintComposition(ctx, w, h);
     }
     animation = requestAnimationFrame(draw);
   }
@@ -695,6 +975,7 @@ async function beginRecording() {
   };
   rec.start(2000);
   active = true;
+  updateStage();
   startTime = Date.now();
   show("recording");
   show("copyLive", false);
@@ -707,7 +988,7 @@ async function beginRecording() {
   timer = setInterval(tick, 1000);
   tick();
   send({ type: "recording" });
-  status("Grabando");
+  status("En vivo");
   await keepAwake();
 }
 function cleanup() {
@@ -731,7 +1012,8 @@ function cleanup() {
   show("controls", false);
   show("stage", false);
   setState("result");
-  show("again");
+  show("again", !guest);
+  if (guest) closeGuestInvitation();
 }
 function finish(notify = true) {
   if (finishTask) return finishTask;
@@ -931,8 +1213,11 @@ async function refreshFiles() {
 }
 $("prepare").onclick = () => {
   if (guest) {
+    if (!$("name").value.trim()) {
+      fail(Error("Escribe tu nombre para entrar."));
+      return;
+    }
     $("consent").checked = true;
-    if (!$("name").value.trim()) $("name").value = "Invitado";
   }
   prepare();
 };
@@ -942,8 +1227,13 @@ $("libraryToggle").onclick = () =>
   show("libraryContent", $("libraryContent").hidden);
 $("copyLive").onclick = () => $("copy").onclick();
 $("exitHost").onclick = () => {
+  const hadGuest = !!conn?.open;
   send({ type: "end" });
   cleanup();
+  if (hadGuest)
+    try {
+      localStorage.removeItem("estudio-room");
+    } catch {}
   location.reload();
 };
 $("copy").onclick = async () => {
@@ -959,7 +1249,7 @@ $("share").onclick = async () => {
   try {
     if (navigator.share)
       await navigator.share({
-        title: "Invitación a entrevista",
+        title: "Invitación a Lumen Interview",
         url: $("link").value,
       });
     else $("copy").click();
@@ -990,7 +1280,7 @@ $("leave").onclick = () => {
   status("Has salido");
   show("recording", false);
   show("leave", false);
-  show("again");
+  show("again", !guest);
 };
 $("download").onclick = () => {
   if (lastFile) downloadFile(lastFile);
@@ -1003,7 +1293,8 @@ window.addEventListener("beforeunload", (e) => {
   }
 });
 document.addEventListener("visibilitychange", async () => {
-  if(stream&&!ending&&document.visibilityState==='visible')await keepAwake();
+  if (stream && !ending && document.visibilityState === "visible")
+    await keepAwake();
 });
 if (guest) {
   $("remoteName").textContent = "Anfitrión";
@@ -1017,7 +1308,16 @@ if (guest) {
   show("detailsToggle", false);
   show("create", false);
   show("library", false);
-  $("again").textContent = "Volver a entrar";
+  show("hostDetails");
+  show("titleLabel", false);
+  show("qualityLabel", false);
+  $("name").placeholder = "Tu nombre";
+  $("name").required = true;
+  if (spentInvitation()) {
+    ending = true;
+    closeGuestInvitation();
+    show("prepare", false);
+  }
 } else {
   const saved = savedInvitation();
   if (saved) {
@@ -1030,11 +1330,28 @@ if (guest) {
   }
   refreshFiles().catch(() => {});
 }
-setState("home");
+setState(ending ? "result" : "home");
+$("focusLocal").onclick = () => focusCamera("local");
+$("focusRemote").onclick = () => focusCamera("remote");
+$("orientation").onclick = (e) => {
+  e.stopPropagation();
+  toggleOrientation();
+};
+if (typeof ResizeObserver !== "undefined")
+  new ResizeObserver(updateStage).observe($("stage"));
+window.addEventListener("resize", updateStage);
 
 document.addEventListener("visibilitychange", () => {
   if (active && document.visibilityState === "hidden")
     notice(
       "La página ha pasado a segundo plano: el teléfono puede pausar el vídeo. Vuelve a mantener la pantalla activa.",
     );
+});
+
+window.addEventListener("pagehide", () => {
+  if (guest && admitted) {
+    try {
+      localStorage.setItem("lumen-ended:" + roomParam, tokenParam);
+    } catch {}
+  }
 });
