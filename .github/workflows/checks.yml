@@ -50,3 +50,29 @@ jobs:
           name: visual-checks
           path: test-results/
           retention-days: 2
+
+  access-engines:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.56.0
+      - run: python -m playwright install --with-deps ${{ matrix.engine }}
+      - run: node tools/seal.mjs
+        env:
+          ESTUDIO_PASSWORD: ci-password-only
+          ESTUDIO_TEST_BUILD: '1'
+      - run: python tests/test_access.py
+        env:
+          APP_PASSWORD: ci-password-only
+          BROWSER_ENGINE: ${{ matrix.engine }}

@@ -23,13 +23,14 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
 server=http.server.ThreadingHTTPServer(('0.0.0.0',8765),functools.partial(Quiet,directory=str(ROOT/'docs')))
 threading.Thread(target=server.serve_forever,daemon=True).start()
-adb('shell','am','start','-a','android.intent.action.VIEW','-d','http://10.0.2.2:8765/','com.brave.browser')
+adb('reverse','tcp:8765','tcp:8765')
+adb('shell','am','start','-a','android.intent.action.VIEW','-d','http://localhost:8765/','com.brave.browser')
 time.sleep(5)
 for i in range(9):
  tree=dump('onboard-'+str(i))
  labels=[(n.attrib.get('text','')+' '+n.attrib.get('content-desc','')).strip() for n in tree.iter('node')]
  print('Android controls:',labels,flush=True)
- if any('Contraseña' in label or '10.0.2.2:8765' in label for label in labels):break
+ if any('Contraseña' in label or 'localhost:8765' in label for label in labels):break
  node=next((n for n in tree.iter('node') if re.fullmatch(r'Get started|Skip|Not now|No thanks|Maybe later|Continue|Start browsing|Got it',n.attrib.get('text',''),re.I)),None)
  if node is not None:tap_node(node)
  else:
@@ -38,39 +39,48 @@ for i in range(9):
   else:break
  time.sleep(2)
 adb('forward','tcp:9222','localabstract:chrome_devtools_remote')
-# Control pages isolate stable HTML from the application's field replacement.
-html=(ROOT/'docs/index.html').read_text()
-html=re.sub(r'<script defer src="access.js[^"]*"></script>','',html)
-(ROOT/'docs/native-frame.html').write_text(html)
-(ROOT/'docs/native-alone.html').write_text(re.sub(r'<iframe[\s\S]*?</iframe>','',html))
 with sync_playwright() as p:
  browser=p.chromium.connect_over_cdp('http://127.0.0.1:9222',timeout=20000)
- page=next((page for context in browser.contexts for page in context.pages if '10.0.2.2' in page.url),None)
+ page=next((page for context in browser.contexts for page in context.pages if 'localhost' in page.url),None)
  if page is None:page=browser.contexts[0].new_page()
- outcomes={}
- for mode,path in [('actual',''),('native-frame','native-frame.html'),('native-alone','native-alone.html')]:
-  page.goto('http://10.0.2.2:8765/'+path)
-  page.locator('#password').wait_for()
-  page.evaluate("window.entryEvents=[];for(const type of ['input','beforeinput','compositionstart','compositionend','focus','blur']) document.getElementById('password').addEventListener(type,e=>entryEvents.push({type:e.type,inputType:e.inputType,length:e.target.value.length}))")
-  tree=dump(mode+'-login')
-  box=page.locator('#password').bounding_box()
+ page.goto('http://localhost:8765/')
+ field=page.locator('#password');field.wait_for()
+ assert page.locator('iframe').count()==0
+ assert field.evaluate("el=>el.tagName==='INPUT' && el.type==='password'")
+ def touch(selector):
+  tree=dump('position')
+  box=page.locator(selector).bounding_box()
   toolbar=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/control_container'))
   top=int(re.findall(r'\d+',toolbar.attrib['bounds'])[-1])
   scale=1080/page.evaluate('innerWidth')
-  adb('shell','input','tap',str(round((box['x']+20)*scale)),str(round(top+(box['y']+20)*scale)))
-  time.sleep(2)
-  dump(mode+'-keyboard')
-  # Pixel 2 / Android 11 Gboard coordinates were inspected in keyboard.png.
-  # These are native screen taps into the software keyboard, not injected text.
-  for x,y in [(110,1400),(645,1550),(430,1550)]:
-   adb('shell','input','tap',str(x),str(y));time.sleep(.4)
-  state=page.evaluate("({active:document.activeElement.id,value:document.getElementById('password').value,events:entryEvents})")
-  outcomes[mode]=state
-  print('KEYBOARD RESULT',mode,json.dumps(state),flush=True)
-  dump(mode+'-typed')
-  adb('shell','input','keyevent','4');time.sleep(.5)
- (OUT/'outcomes.json').write_text(json.dumps(outcomes,indent=2))
- print('ANDROID COMPARISON',json.dumps(outcomes),flush=True)
- assert any(state['value']=='abc' for state in outcomes.values()),'No scenario accepted native keyboard input'
+  adb('shell','input','tap',str(round((box['x']+box['width']/2)*scale)),str(round(top+(box['y']+box['height']/2)*scale)))
+  time.sleep(.5)
+ touch('#password');time.sleep(1)
+ dump('keyboard')
+ # Pixel 2 / Android 11 Gboard coordinates inspected in the previous captures.
+ for x,y in [(110,1400),(645,1550),(430,1550)]:
+  adb('shell','input','tap',str(x),str(y));time.sleep(.3)
+ assert field.input_value()=='abc',field.input_value()
+ adb('shell','input','tap','995','1550');time.sleep(.3)
+ assert field.input_value()=='ab','Soft-keyboard Backspace failed'
+ adb('shell','input','tap','430','1550');time.sleep(.3)
+ assert field.input_value()=='abc'
+ dump('native-typed')
+ touch('#showPassword')
+ assert field.get_attribute('type')=='text'
+ assert field.input_value()=='abc'
+ # Editing must still work after toggling the eye, without pasting or CDP typing.
+ adb('shell','input','tap','995','1550');time.sleep(.3)
+ assert field.input_value()=='ab','Backspace after eye failed'
+ adb('shell','input','tap','430','1550');time.sleep(.3)
+ assert field.input_value()=='abc'
+ touch('#showPassword')
+ assert field.get_attribute('type')=='password'
+ dump('after-editing')
+ adb('shell','input','tap','995','1710')
+ page.frame_locator('#studio').locator('#heading').wait_for(timeout=20000)
+ assert page.frame_locator('#studio').locator('#heading').inner_text()=='Prepara tu próxima entrevista.'
+ dump('host-unlocked')
+ print('PASS: Brave Android 1.95.104 / Android 11: real software-keyboard touches type abc, delete/retype, show/hide, delete/retype again, and submit to host. No CDP typing or paste.',flush=True)
  browser.close()
 server.shutdown()

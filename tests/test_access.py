@@ -16,7 +16,12 @@ threading.Thread(target=server.serve_forever,daemon=True).start()
 url=f'http://127.0.0.1:{server.server_port}/'
 try:
     with sync_playwright() as p:
-        browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path,headless=True,args=['--no-sandbox'])
+        engine=os.environ.get('BROWSER_ENGINE','chromium')
+        browser_type=getattr(p,engine)
+        launch={'headless':True}
+        if engine=='chromium':
+            launch.update(executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path,args=['--no-sandbox'])
+        browser=browser_type.launch(**launch)
         page=browser.new_page()
         errors=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
@@ -35,25 +40,26 @@ try:
         # Touch the real field and type through the keyboard, without fill(),
         # so an unfocusable or covered mobile input cannot silently pass.
         for width,height in [(360,640),(390,844),(844,390)]:
-            mobile_ctx=browser.new_context(viewport={'width':width,'height':height},is_mobile=True,has_touch=True)
+            mobile_ctx=browser.new_context(viewport={'width':width,'height':height},has_touch=True,**({'is_mobile':True} if engine!='firefox' else {}))
             mobile=mobile_ctx.new_page()
             mobile.goto(url)
             password=mobile.locator('#password')
             password.tap()
             assert password.evaluate('el => document.activeElement===el')
-            assert password.evaluate("el=>el.tagName==='TEXTAREA'")
-            assert password.evaluate("el => getComputedStyle(el).webkitTextSecurity==='disc'")
+            assert password.evaluate("el=>el.tagName==='INPUT'")
+            assert mobile.locator('iframe').count()==0
+            assert password.get_attribute('type')=='password'
             # Insert committed text as a software keyboard/IME does, rather
             # than only generating desktop physical-key events.
             mobile.keyboard.insert_text('inco')
             mobile.keyboard.insert_text('rrecta')
             assert password.input_value()=='incorrecta'
             mobile.locator('#showPassword').tap()
-            assert password.evaluate("el => getComputedStyle(el).webkitTextSecurity!=='disc'")
+            assert password.get_attribute('type')=='text'
             assert password.input_value()=='incorrecta'
             assert password.evaluate('el => document.activeElement===el')
             mobile.locator('#showPassword').tap()
-            assert password.evaluate("el => getComputedStyle(el).webkitTextSecurity==='disc'")
+            assert password.get_attribute('type')=='password'
             mobile.locator('#unlock').tap()
             expect(mobile.locator('#accessMessage')).to_have_text('Contraseña incorrecta.')
             password.tap()
@@ -74,7 +80,7 @@ try:
         fallback.locator('#showPassword').click()
         assert fallback.locator('#password').get_attribute('type')=='password'
         fallback_ctx.close()
-        print('PASS: entrada IME mediante textarea enmascarada, sin integración de autocompletado; alternativa nativa segura y ojo accesible.')
+        print('PASS: campo password nativo estable, sin iframe durante la escritura; ojo conserva valor, selección y foco. Motor:',engine)
         key=host.evaluate('window.ESTUDIO_GUEST_KEY')
         invite=url+'#room=entrevista-'+'a'*48+'&key='+'b'*48+'&access='+key
         guest=browser.new_page()

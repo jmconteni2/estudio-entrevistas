@@ -10,8 +10,8 @@
     <title>Lumen Interview</title>
     <link rel="icon" type="image/webp" href="assets/lumi-icon.webp" />
     <link rel="apple-touch-icon" href="assets/lumi-icon.webp" />
-    <link rel="stylesheet" href="style.css?v=0.6.3" />
-    <script defer src="access.js?v=0.6.3"></script>
+    <link rel="stylesheet" href="style.css?v=0.6.4" />
+    <script defer src="access.js?v=0.6.4"></script>
     <style>
       .access {
         max-width: 560px;
@@ -70,7 +70,6 @@
         -webkit-user-select: text;
       }
       #password:focus { outline: 3px solid #f5801224; border-color: var(--accent); }
-      #password.password-masked { -webkit-text-security: disc; }
       #showPassword {
         position: absolute;
         right: 5px;
@@ -138,12 +137,6 @@
         <p id="accessMessage" role="status" aria-live="polite"></p>
       </section>
     </main>
-    <iframe
-      id="studio"
-      name="studio"
-      title="Lumen Interview"
-      allow="camera; microphone; autoplay; clipboard-write; screen-wake-lock"
-      hidden
-    ></iframe>
+
   </body>
 </html>

@@ -2,63 +2,28 @@
 const panel=document.getElementById('accessPanel');
 const form=document.getElementById('login');
 const message=document.getElementById('accessMessage');
-const frame=document.getElementById('studio');
+let frame=null;
 const params=new URLSearchParams(location.hash.slice(1));
 const enc=new TextEncoder(),dec=new TextDecoder();
 const unbase64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let busy=false;
-let passwordInput=document.getElementById('password');
+const passwordInput=document.getElementById('password');
 const showPassword=document.getElementById('showPassword');
-// Use a stable textarea on engines with visual masking support. This avoids
-// input[type=password] and its autofill/IME integration without exposing text.
-// Browsers without text-security keep their native password input.
-const cssPasswordMask=!!(window.CSS && CSS.supports('-webkit-text-security','disc'));
-let passwordVisible=false;
-if(cssPasswordMask){
- const editor=document.createElement('textarea');
- editor.id=passwordInput.id;
- editor.name='host-access';
- editor.rows=1;
- editor.required=true;
- editor.autocomplete='off';
- editor.setAttribute('autocapitalize','none');
- editor.setAttribute('autocorrect','off');
- editor.setAttribute('enterkeyhint','go');
- editor.setAttribute('inputmode','text');
- editor.setAttribute('aria-label','Contraseña del anfitrión');
- editor.spellcheck=false;
- editor.className='password-masked';
- editor.value=passwordInput.value;
- passwordInput.replaceWith(editor);
- passwordInput=editor;
- // A textarea does not submit a form on Enter by default. Handle both the
- // physical key and the soft-keyboard action, while leaving IME composition alone.
- editor.addEventListener('keydown',event=>{
-  if(event.key==='Enter'&&!event.isComposing){event.preventDefault();form.requestSubmit();}
- });
- editor.addEventListener('beforeinput',event=>{
-  if(!event.isComposing&&['insertLineBreak','insertParagraph'].includes(event.inputType)){
-   event.preventDefault();form.requestSubmit();
-  }
- });
- editor.addEventListener('input',()=>{
-  // A pasted line ending is formatting, not part of the host access phrase.
-  if(/[\r\n]/.test(editor.value))editor.value=editor.value.replace(/[\r\n]/g,'');
- });
-}
+// Keep the native password control in the original HTML. Do not replace it,
+// autofocus it or intercept its typing/composition events.
 showPassword.addEventListener('pointerdown',event=>event.preventDefault());
 showPassword.addEventListener('click',()=>{
- passwordVisible=!passwordVisible;
- if(cssPasswordMask){
-  passwordInput.classList.toggle('password-masked',!passwordVisible);
- }else{
-  passwordInput.type=passwordVisible?'text':'password';
- }
- const label=passwordVisible?'Ocultar contraseña':'Mostrar contraseña';
+ const start=passwordInput.selectionStart,end=passwordInput.selectionEnd;
+ const visible=passwordInput.type==='password';
+ // End the previous editing session before changing its native input type.
+ passwordInput.blur();
+ passwordInput.type=visible?'text':'password';
+ const label=visible?'Ocultar contraseña':'Mostrar contraseña';
  showPassword.setAttribute('aria-label',label);
  showPassword.title=label;
- showPassword.setAttribute('aria-pressed',String(passwordVisible));
- passwordInput.focus();
+ showPassword.setAttribute('aria-pressed',String(visible));
+ passwordInput.focus({preventScroll:true});
+ if(start!==null&&end!==null)passwordInput.setSelectionRange(start,end);
 });
 async function envelope(role){
  const response=await fetch(`sealed-${role}.json`,{cache:'no-store'});
@@ -81,7 +46,13 @@ function openApp(payload){
  doc.head.prepend(config);
  const script=doc.createElement('script');script.defer=true;script.src=codeURL;doc.head.append(script);
  const pageURL=URL.createObjectURL(new Blob(['<!doctype html>'+doc.documentElement.outerHTML],{type:'text/html'}));
- frame.src=pageURL+location.hash;panel.hidden=true;frame.hidden=false;
+ // Create the app frame only after authentication. The password page has
+ // a single browsing context throughout its native editing session.
+ frame=document.createElement('iframe');
+ frame.id='studio';frame.name='studio';frame.title='Lumen Interview';
+ frame.allow='camera; microphone; autoplay; clipboard-write; screen-wake-lock';
+ frame.src=pageURL+location.hash;
+ document.body.append(frame);panel.hidden=true;
  // URLs remain valid for this tab, including the Nueva entrevista reload.
  window.addEventListener('pagehide',()=>{URL.revokeObjectURL(codeURL);URL.revokeObjectURL(pageURL);},{once:true});
 }
