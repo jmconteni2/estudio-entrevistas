@@ -1,0 +1,38 @@
+name: Comprobaciones técnicas
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check app.js && node --check storage-worker.js
+      - run: node --test tests/test_regressions.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tests/requirements.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python tests/test_browser.py
+  real-signaling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tests/requirements.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python tests/test_live.py

@@ -1,0 +1,26 @@
+✔ invitación recuperable con JSON corrupto (10.804521ms)
+✔ invitación recuperable si localStorage está bloqueado (2.1345ms)
+✔ doble pulsación de cámara solo solicita un flujo (8.074593ms)
+✔ fallo OPFS se detecta antes de pedir cámara (1.63014ms)
+✔ worker bloqueado rechaza por plazo en vez de esperar para siempre (1.979149ms)
+✔ token incorrecto y segundo participante no son admitidos (1.487535ms)
+✔ la llamada espera confirmación ready del invitado (1.73329ms)
+✔ el invitado confirma consentimiento al solicitar entrada (1.384641ms)
+✔ finalizar espera la inicialización y admite llamadas repetidas (1.371397ms)
+✔ fin durante el arranque notifica y conserva archivo parcial (2.401543ms)
+✔ colgar la llamada detiene recursos y muestra reinicio (1.921334ms)
+✔ worker escribe también cuando write devuelve bloques parciales (3.832703ms)
+✔ worker comunica escritura nula y falta de espacio (1.881343ms)
+✔ fallo al cerrar el writer intenta rescatar el archivo escrito (1.654932ms)
+✔ datos de invitación guardados inválidos no se reutilizan (1.932448ms)
+✔ un mensaje recording previo a la admisión no inicia el indicador (1.004685ms)
+✔ fallo de escritura en preflight aborta su worker (1.024455ms)
+✔ retirada del invitado antes de grabar permite admitir el siguiente (1.329133ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 170.683221

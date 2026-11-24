@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <title>Estudio de entrevistas</title>
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="vendor/peerjs-1.5.5.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header>
+      <span class="logo">◉</span>
+      <div>
+        <strong>Estudio de entrevistas</strong
+        ><small>Videollamada privada · Grabación local</small>
+      </div>
+      <span id="status" role="status">Preparado</span>
+    </header>
+    <main>
+      <section id="intro">
+        <h1 id="heading">Nueva entrevista</h1>
+        <p id="description">
+          Crea una invitación y graba la conversación directamente en tu
+          dispositivo.
+        </p>
+        <label
+          >Tu nombre<input
+            id="name"
+            maxlength="60"
+            autocomplete="name"
+            placeholder="Nombre" /></label
+        ><label id="titleLabel"
+          >Título de la entrevista<input
+            id="title"
+            maxlength="100"
+            placeholder="Entrevista" /></label
+        ><label id="qualityLabel"
+          >Calidad de grabación<select id="quality">
+            <option value="720">HD · 720p</option>
+            <option value="480">Ligera · 480p</option>
+          </select></label
+        ><label id="consentLabel" class="check" hidden
+          ><input type="checkbox" id="consent" /> Acepto que el entrevistador
+          grabe esta conversación.</label
+        ><button id="prepare">Activar cámara y micrófono</button>
+      </section>
+      <section class="stage" id="stage">
+        <div class="video">
+          <video id="local" muted autoplay playsinline></video
+          ><span id="localName">Tu cámara</span>
+        </div>
+        <div class="video" id="remoteBox">
+          <video id="remote" autoplay playsinline></video
+          ><span id="remoteName">Invitado</span>
+        </div>
+      </section>
+      <section id="controls" hidden>
+        <div class="buttons">
+          <button class="secondary" id="mic">Silenciar micrófono</button
+          ><button class="secondary" id="cam">Desactivar cámara</button>
+        </div>
+        <button id="create">Generar invitación</button
+        ><button id="join" hidden>Solicitar entrada</button>
+        <div id="invitation" hidden>
+          <label>Enlace de invitación<input id="link" readonly /></label>
+          <div class="buttons">
+            <button id="copy" class="secondary">Copiar enlace</button
+            ><button id="share" class="secondary">Compartir</button>
+          </div>
+        </div>
+        <div id="waiting" hidden>
+          <p id="request"></p>
+          <div class="buttons">
+            <button id="accept">Aceptar e iniciar grabación</button
+            ><button id="reject" class="secondary">Rechazar</button>
+          </div>
+        </div>
+        <div id="recording" hidden>
+          <div class="rec">
+            <span>● REC</span> <output id="clock">00:00:00</output>
+            <small id="bytes"></small>
+          </div>
+          <button id="finish" class="danger">Finalizar y guardar</button>
+        </div>
+        <button id="leave" class="danger" hidden>Salir de la entrevista</button>
+      </section>
+      <section id="result" hidden>
+        <h2>Grabación finalizada</h2>
+        <p id="resultInfo"></p>
+        <button id="download">Guardar vídeo en el dispositivo</button>
+      </section>
+      <button id="again" class="secondary" hidden>Nueva entrevista</button>
+      <section id="library">
+        <h2>Grabaciones locales</h2>
+        <p>
+          Los archivos permanecen en este navegador hasta que los guardes o
+          elimines. No se suben a ningún servidor.
+        </p>
+        <div id="files"></div>
+      </section>
+      <p id="notice" role="alert" aria-live="polite"></p>
+      <details>
+        <summary>Información técnica</summary>
+        <p>
+          Usa una conexión directa WebRTC y señalización pública PeerJS. Mantén
+          la página abierta y la pantalla activa. Si la red bloquea la conexión
+          directa, cambia de red. La calidad depende del dispositivo y de la
+          conexión. El vídeo se guarda por bloques en el almacenamiento privado
+          del navegador; exporta el archivo antes de borrar los datos del sitio.
+        </p>
+        <pre id="diagnostics"></pre>
+      </details>
+    </main>
+    <footer>
+      Sin suscripciones · Sin captura de pantalla · Sin almacenamiento remoto
+    </footer>
+  </body>
+</html>
