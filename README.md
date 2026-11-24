@@ -1,4 +1,4 @@
-# Lumen Interview — v0.05
+# Lumen Interview — v0.06
 
 Aplicación estática para videollamadas de dos personas con grabación audiovisual local. El entrevistador crea la invitación, admite al invitado y guarda el vídeo en su dispositivo. El invitado acepta la grabación y solicita entrada. No utiliza Zoom ni captura una aplicación externa.
 
@@ -8,7 +8,7 @@ No requiere Cloudflare, base de datos, backend propio, suscripciones ni claves c
 
 Lumen Interview está publicada en https://jmconteni2.github.io/estudio-entrevistas/ desde `main` y `/docs`. La dirección y el repositorio independiente se conservan.
 
-Batería v0.05 aprobada: 28 pruebas de lógica y tres pruebas de navegador. Se comprobó el nombre obligatorio, el fin de sesión sin regreso del invitado, la nueva invitación, orientaciones y focos independientes, vídeo HH/VV/mixto con nombres y marca, sonido, persistencia, descarga y decodificación de archivos 1280×720 y 720×720. Se revisaron imágenes del archivo exportado, no solo de la interfaz. Resultados en `tests/RESULTADOS_GITHUB_v0.05.txt`.
+Batería v0.06 aprobada: 29 pruebas de lógica y tres pruebas de navegador. Se verificaron el flujo de invitación, nombre, cierre, orientaciones independientes y restauración de las cámaras iguales al pulsar el fondo. Dos vídeos VP8/Opus se descargaron y decodificaron a 1280×720 y 1920×1080. Resultados en `tests/RESULTADOS_GITHUB_v0.06.txt`.
 
 Los ocho recursos HTTPS comprobados coinciden con los archivos revisados. No se certifican todos los teléfonos físicos, todas las redes ni entrevistas de varias horas. Las limitaciones de conexión directa y del sistema operativo continúan aplicando.
 
@@ -32,6 +32,12 @@ Los paquetes de producción ya están preparados en `docs/`. `tools/seal.mjs` pe
 Nombre, título y calidad quedan bajo un control opcional. Las cámaras y los controles de llamada aparecen al entrar al estudio; la información técnica y el pie promocional se han retirado. El móvil muestra la cámara del invitado como vista principal y la propia en una miniatura.
 
 Mantener la página visible y la pantalla activa durante la entrevista. El teléfono puede suspender el vídeo si se bloquea o se cambia de aplicación. Las grabaciones y las invitaciones pertenecen al navegador y dispositivo que las creó. Borrar sus datos las elimina; exportar el vídeo antes de hacerlo. No se garantiza recuperar un archivo tras un cierre abrupto.
+
+## Ajustes v0.06
+
+En vivo aparece arriba con su punto rojo pulsante; abajo queda Grabando. Los controles de orientación usan iconos SVG. Pulsar el fondo, fuera de las cámaras y de los controles, o Escape en la composición, devuelve la vista equilibrada. En horizontal ambas ventanas vuelven al mismo tamaño.
+
+El fondo del estudio y del vídeo incorpora iluminación cálida y trazos geométricos sobre carbón. El selector de calidad, dentro de Opciones de la entrevista, ofrece Full HD 1080p: 1920×1080 para composición horizontal/mixta y 1080×1080 para inicio con dos cámaras verticales, con mayor bitrate. Se conserva 720p por defecto para dispositivos con menos recursos.
 
 ## Cámaras y composición del vídeo
 

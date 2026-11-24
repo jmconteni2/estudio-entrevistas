@@ -1,4 +1,4 @@
-# Continuidad — Lumen Interview v0.05
+# Continuidad — Lumen Interview v0.06
 
 Proyecto independiente del usuario, publicado en https://jmconteni2.github.io/estudio-entrevistas/ . Repositorio público: https://github.com/jmconteni2/estudio-entrevistas . No mezclar con BookTrigger ni J.M. Pocket.
 
@@ -28,6 +28,12 @@ sceneLayout es la fuente común de posiciones para los elementos de cámara y la
 
 El fondo y los bordes, nombres y marca quedan incrustados en el archivo. El distintivo dice En vivo y tiene punto rojo pulsante. Wake Lock se solicita durante preparación/espera/entrevista y se libera al acabar; se ha retirado el recordatorio permanente de mantener pantalla encendida, sin prometer compatibilidad universal.
 
+## Ajustes v0.06
+
+Indicador En vivo con punto rojo pulsante en la cabecera; abajo Grabando sin punto. Iconos de orientación SVG, sin glifos de texto. resetCameraFocus devuelve el foco a null al pulsar el fondo o Escape; en HH las dos ventanas usan el mismo ancho y alto. El clic global excluye cámaras y controles interactivos.
+
+Fondo CSS con luz y trazos cálidos sobre carbón; el Canvas incorpora luces, trama y ondas para que la decoración se conserve en la grabación. Full HD opcional en el selector: 1920×1080, o 1080×1080 si se inicia VV, a 5 Mbps de vídeo. 720p sigue siendo el valor inicial. El selector está dentro de Opciones de la entrevista.
+
 ## Archivos
 
 - `app.js`, `index.html`, `style.css`, `storage-worker.js`: fuentes de la aplicación.
@@ -44,9 +50,9 @@ Si se modifica app.js o la plantilla HTML, regenerar los paquetes de producción
 
 ## Evidencia obtenida
 
-Batería final v0.05 aprobada: ejecución 45362881233, trabajo 138337090594, commit 3e0959c47517e53dc1ae989ce87f50ea06cb0512. Las 28 pruebas Node y las tres pruebas de navegador pasaron. Se verificaron enlace anticipado, nombre del invitado, dos orientaciones independientes y foco local que no cambia la grabación del otro, las composiciones exportadas y dos grabaciones reales con medios sintéticos. VP8/Opus a 1280×720 y 720×720 decodificados correctamente.
+Batería final v0.06 aprobada: ejecución 45381039403, trabajo 138399806268, commit 8950ea0709c72ded3047cc52b320d08b89b04512. Las 29 pruebas Node y las tres pruebas de navegador pasaron. Se verificaron invitaciones, nombre, cierre, orientaciones y foco independientes y restauración de cámaras de igual tamaño pulsando el fondo. Vídeos VP8/Opus a 1280×720 y 1920×1080 descargados y decodificados correctamente.
 
-Despliegue correcto: ejecución 45362880978. Ocho recursos HTTPS, incluido el icono, iguales byte a byte a la revisión local. Se revisaron las imágenes de vídeo HH, VV cuadrado y mixtos y el móvil; la marca completa aparece sin recortar. La contraseña no figura en el código público y la clave de invitación se conservó al regenerar.
+Despliegue correcto: ejecución 45381038394. Se revisó la imagen exportada con el nuevo fondo, En vivo arriba y cámaras horizontales de igual tamaño.
 
 La prueba comprueba también que el invitado ve cierre sin Volver a entrar y que recargar el mismo enlace mantiene la sesión terminada en su navegador. Una invitación nueva permite otra entrevista. No hay base de datos ni servidor de revocaciones; la sala antigua del anfitrión se retira al acabar.
 

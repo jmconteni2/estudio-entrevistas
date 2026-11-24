@@ -1,3 +1,9 @@
+# Ajustes v0.06 — resultado comprobado
+
+En vivo con punto rojo arriba; Grabando abajo. Iconos SVG de orientación, restauración de la vista equilibrada al pulsar el fondo, fondo decorado tanto en pantalla como en el vídeo y opción Full HD de 1920×1080. La calidad inicial sigue siendo 720p.
+
+Ejecución 45381039403 aprobada: 29 pruebas Node y tres pruebas de navegador. Se descargaron y decodificaron vídeos a 1280×720 y 1920×1080 y se revisó una imagen del Canvas exportado. Despliegue 45381038394 correcto. Evidencia en tests/RESULTADOS_GITHUB_v0.06.txt. Las limitaciones de redes sin TURN y de suspensión del dispositivo siguen siendo aplicables.
+
 # Lumen Interview v0.05 — cámaras, identidad y presentación
 
 El nombre visible es Lumen Interview. La captura de otro sitio se utilizó solo como referencia de color: crema, naranja y carbón. El personaje de Lumi con micrófono se adaptó mediante generación de imagen a un icono propio de esquinas redondeadas, incorporado a la cabecera, acceso, favicon y marca del vídeo. No se publicó la captura ni la fotografía original sin adaptar.
