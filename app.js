@@ -1,7 +1,7 @@
 "use strict";
 const $ = (id) => document.getElementById(id),
   show = (id, on = true) => ($(id).hidden = !on),
-  status = (s) => ($("status").textContent = s),
+  status = (s) => {$("status").textContent=s;$("status").classList?.toggle("is-live",s==="En vivo");},
   notice = (s) => ($("notice").textContent = s);
 const params = new URLSearchParams(location.hash.slice(1)),
   guest = window.ESTUDIO_MODE
@@ -75,10 +75,10 @@ let remoteOrientation = "landscape",
 const validOrientation = (v) => v === "portrait" || v === "landscape";
 const cameraRatio = (o) => (o === "portrait" ? 9 / 16 : 16 / 9);
 function recordingSize(lo, ro, quality) {
-  const h = quality === 480 ? 480 : 720;
+  const h = [480,720,1080].includes(quality)?quality:720;
   return lo === "portrait" && ro === "portrait"
     ? { w: h, h }
-    : { w: h === 720 ? 1280 : 854, h };
+    : { w: h===1080?1920:h===720?1280:854,h };
 }
 function sceneLayout(w, h, lo, ro, focus = null) {
   const m = Math.min(w, h) * 0.045,
@@ -108,8 +108,8 @@ function sceneLayout(w, h, lo, ro, focus = null) {
   } else if (lo === "landscape" && ro === "landscape") {
     const aw = Math.min(w * 0.5, (h * 0.52 * 16) / 9),
       ah = (aw * 9) / 16,
-      bw = Math.min(w * 0.57, (h * 0.58 * 16) / 9),
-      bh = (bw * 9) / 16;
+      bw = aw,
+      bh = ah;
     boxes = {
       local: { x: m, y: h * 0.12, w: aw, h: ah },
       remote: { x: w - m - bw, y: h - m - bh, w: bw, h: bh },
@@ -127,7 +127,7 @@ function sceneLayout(w, h, lo, ro, focus = null) {
   return { boxes, order: ["local", "remote"] };
 }
 function updateStage() {
-  for(const id of ['orientation','orientationSetup']){const button=$(id);if(!button)continue;button.textContent=localOrientation==='portrait'?'▯':'▭';button.title=localOrientation==='portrait'?'Tu cámara: vertical. Cambiar a horizontal':'Tu cámara: horizontal. Cambiar a vertical';button.setAttribute?.('aria-label',button.title);}
+  for(const id of ['orientation','orientationSetup']){const button=$(id);if(!button)continue;button.innerHTML=localOrientation==='portrait'?'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 8V5h3M21 16v3h-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>':'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 3H5v3M16 21h3v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';button.title=localOrientation==='portrait'?'Tu cámara: vertical. Cambiar a horizontal':'Tu cámara: horizontal. Cambiar a vertical';button.setAttribute?.('aria-label',button.title);}
   const stage = $("stage");
   if (!stage?.style || !stage.clientWidth) return;
   stage.style.aspectRatio =
@@ -161,6 +161,7 @@ function updateStage() {
   }
 
 }
+function resetCameraFocus(){focusedCamera=null;updateStage();}
 function focusCamera(which) {
   focusedCamera = which;
   updateStage();
@@ -208,6 +209,10 @@ function paintComposition(ctx, w, h) {
   bg.addColorStop(1, "#33251b");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
+  const glow=ctx.createRadialGradient(w*.88,h*.08,0,w*.88,h*.08,w*.95);glow.addColorStop(0,'#b87b3940');glow.addColorStop(1,'#b87b3900');ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.strokeStyle='#dbb17a16';ctx.lineWidth=Math.max(1,w/1500);
+  for(let i=-h;i<w+h;i+=w*.055){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i-h,h);ctx.stroke();}
+  for(let i=0;i<8;i++){ctx.beginPath();ctx.strokeStyle='rgba(222,166,95,'+(.07+i*.012)+')';ctx.moveTo(-w*.1,h*(.62+i*.045));ctx.bezierCurveTo(w*.26,h*(1.18+i*.035),w*.56,-h*.4,w*1.15,h*(.16+i*.065));ctx.stroke();}ctx.restore();
   const layout = sceneLayout(
       w,
       h,
@@ -935,7 +940,7 @@ async function beginRecording() {
   ]);
   rec = new MediaRecorder(combined, {
     mimeType: fmt,
-    videoBitsPerSecond: h === 720 ? 1500000 : 850000,
+    videoBitsPerSecond: h>=1080?5000000:h===720?1500000:850000,
     audioBitsPerSecond: 128000,
   });
   rec.ondataavailable = (e) => {
@@ -1335,6 +1340,8 @@ $("orientation").onclick = (e) => {
 };
 if (typeof ResizeObserver !== "undefined")
   new ResizeObserver(updateStage).observe($("stage"));
+$('stage').onclick=e=>{if(e.target===$('stage'))resetCameraFocus();};
+$('stage').onkeydown=e=>{if(e.key==='Escape')resetCameraFocus();};
 window.addEventListener("resize", updateStage);
 updateStage();
 

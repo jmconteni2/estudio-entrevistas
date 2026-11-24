@@ -586,3 +586,5 @@ test("la pantalla solicita mantenerse activa y libera el bloqueo al acabar", asy
 });
 
 test("la orientación se puede elegir antes de activar la cámara",async()=>{const t=setup();await t.run('toggleOrientation()');assert.equal(t.run('localOrientation'),'portrait');assert.equal(t.mediaCalls,0);assert.match(t.get('orientationSetup').title,/vertical/);});
+
+test("volver al fondo restaura cámaras iguales y admite Full HD",()=>{const t=setup();t.run("focusCamera('local');resetCameraFocus()");assert.equal(t.run('focusedCamera'),null);assert.equal(t.run("sceneLayout(1280,720,'landscape','landscape').boxes.local.w===sceneLayout(1280,720,'landscape','landscape').boxes.remote.w"),true);assert.equal(t.run("recordingSize('landscape','landscape',1080).w"),1920);assert.equal(t.run("recordingSize('portrait','portrait',1080).h"),1080);});

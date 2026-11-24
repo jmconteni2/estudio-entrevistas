@@ -78,8 +78,9 @@ try:
         # The same guest waits and joins automatically: no further button on either side.
         host.locator('#recording').wait_for(state='visible',timeout=40000)
         guest.locator('#recording').wait_for(state='visible',timeout=10000)
-        assert 'en vivo' in host.locator('#recording').inner_text().casefold()
-        assert 'en vivo' in guest.locator('#recording').inner_text().casefold()
+        assert 'grabando' in host.locator('#recording').inner_text().casefold()
+        assert host.locator('#status').inner_text()=='En vivo'
+        assert 'grabando' in guest.locator('#recording').inner_text().casefold()
         assert guest.evaluate('audio.state')=='running', 'Audio del invitado suspendido'
         assert guest.evaluate('!!playbackSource'), 'No se ha conectado la salida de audio'
         assert guest.locator('#remoteName').inner_text()=='Entrevistador automático'
@@ -113,6 +114,13 @@ try:
         host.locator('#focusRemote').click()
         assert host.evaluate('focusedCamera')=='remote'
         export_scene('focused')
+        host.locator('#stage').click(position={'x':5,'y':5})
+        assert host.evaluate('focusedCamera') is None
+        host.locator('#orientation').click()
+        guest.locator('#orientation').click()
+        host.wait_for_function("remoteOrientation==='landscape'")
+        assert host.evaluate("sceneLayout(1280,720,'landscape','landscape').boxes.local.w===sceneLayout(1280,720,'landscape','landscape').boxes.remote.w")
+        export_scene('restored-equal')
         guest_top.screenshot(path=str(results/'guest-recording-mobile.png'),full_page=True)
         host_top.screenshot(path=str(results/'host-recording.png'),full_page=True)
         # Ending the interview retires the guest view. Reload must not offer entry again.
@@ -141,8 +149,9 @@ try:
         host.locator('#create').click()
         new_invitation=host.locator('#link').input_value()
         assert new_invitation!=invitation
-        host.locator('#orientationSetup').click()
-        assert host.evaluate('localOrientation')=='portrait'
+        host.locator('#detailsToggle').click()
+        host.locator('#quality').select_option('1080')
+        assert host.evaluate('localOrientation')=='landscape'
         assert host.evaluate('!stream'), 'Cambiar encuadre pidió cámara antes de entrar'
         host.locator('#prepare').click()
         guest_top.close()
@@ -150,11 +159,12 @@ try:
         guest_top.goto(new_invitation)
         guest_top.locator('#studio').wait_for(state='visible')
         guest=guest_top.frame(name='studio')
+        guest.locator('#orientationSetup').click()
         guest.locator('#name').fill('Segunda invitación')
         guest.locator('#prepare').click()
         host.locator('#recording').wait_for(state='visible',timeout=30000)
         host.wait_for_function('written>10000',timeout=20000)
-        assert host.evaluate('canvas.width===canvas.height'), 'El vídeo vertical doble no es cuadrado'
+        assert host.evaluate('canvas.width===1920 && canvas.height===1080'), 'No se está grabando en Full HD'
         export_scene('square-vertical')
         guest.locator('#leave').click()
         host.locator('#result').wait_for(state='visible',timeout=20000)
@@ -164,7 +174,7 @@ try:
             target=pathlib.Path(tmp)/download2.value.suggested_filename
             download2.value.save_as(target)
             info=check_media(target)
-            assert info['width']==720 and info['height']==720,info
+            assert info['width']==1920 and info['height']==1080,info
             print(json.dumps(info))
         assert not errors, errors
         print('PASS: invitación anticipada, nombre obligatorio y visible, cámaras y orientaciones independientes, composiciones exportadas HH/VV/mixtas, foco independiente, invitación terminada bloqueada tras recargar, invitación nueva válida, vídeos 1280x720 y 720x720 decodificados.')
