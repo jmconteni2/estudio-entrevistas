@@ -70,7 +70,7 @@ with sync_playwright() as p:
  # Seal a test-only fixture using exactly the case supplied by Android's keyboard.
  subprocess.run(['node',str(ROOT/'tools/seal.mjs')],env={**os.environ,'ESTUDIO_PASSWORD':typed,'ESTUDIO_TEST_BUILD':'1'},check=True)
  tree=dump('dialog-edited')
- ok=next(n for n in tree.iter('node') if n.attrib.get('resource-id')=='android:id/button1')
+ ok=next(n for n in tree.iter('node') if n.attrib.get('resource-id')=='android:id/button1' or n.attrib.get('resource-id','').endswith('/positive_button') or n.attrib.get('text') in ['OK','Aceptar'])
  tap_node(ok)
  page.frame_locator('#studio').locator('#heading').wait_for(timeout=20000)
  assert page.frame_locator('#studio').locator('#heading').inner_text()=='Prepara tu próxima entrevista.'
