@@ -267,10 +267,9 @@ function paintComposition(ctx, w, h) {
     ctx.fillText(name, b.x + 24 * scale, b.y + b.h - 22 * scale);
     ctx.restore();
   }
-  const fs = Math.max(12, 21 * scale),
-    icon = 40 * scale,
-    bx = w - 235 * scale,
-    by = 23 * scale;
+  const fs=Math.max(12,21*scale),icon=40*scale,by=23*scale;
+  ctx.font='600 '+fs+'px system-ui';
+  const bx=w-32*scale-icon-10*scale-ctx.measureText('Lumen Interview').width;
   if (compositionLogo?.complete && compositionLogo.naturalWidth) {
     ctx.save();
     roundedPath(ctx, bx, by, icon, icon, 11 * scale);
