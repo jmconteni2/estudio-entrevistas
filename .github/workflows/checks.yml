@@ -34,6 +34,8 @@ jobs:
           APP_PASSWORD: ci-password-only
       - name: Descargar Brave estable oficial para comprobar el acceso
         run: python tests/install_brave.py
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Probar acceso con Brave real y vista móvil
         run: python tests/test_access.py
         env:

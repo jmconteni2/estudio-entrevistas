@@ -9,6 +9,8 @@ import urllib.request
 request=urllib.request.Request(
     'https://api.github.com/repos/brave/brave-browser/releases/latest',
     headers={'Accept':'application/vnd.github+json','User-Agent':'Lumen-Interview-CI'})
+if os.environ.get('GH_TOKEN'):
+    request.add_header('Authorization','Bearer '+os.environ['GH_TOKEN'])
 with urllib.request.urlopen(request,timeout=45) as response:
     release=json.load(response)
 asset=next(a for a in release['assets'] if a['name'].startswith('brave-browser_') and a['name'].endswith('_amd64.deb'))
