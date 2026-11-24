@@ -30,3 +30,9 @@ Existen incidencias públicas de Brave con entrada de texto/autofill en Android 
 ## Validación de esta revisión
 
 Las 29 pruebas de lógica pasan localmente, y la sintaxis JavaScript y Python es correcta. No se modifican los paquetes cifrados de producción ni las invitaciones. El entorno local no permite iniciar Chromium (socket: Operation not permitted); la verificación de navegadores y Android debe realizarse en CI. No se declara resuelto el fallo del dispositivo sin evidencia adicional.
+
+## Resultados remotos de la revisión
+
+La ejecución 45413371759 sobre el commit 01cd98196b82266efa79dd8be2a32c41d4efc18d ha finalizado correctamente: pruebas de lógica, acceso y campos en Chrome/Brave de escritorio con vistas móviles, Firefox, WebKit y entrevista/grabación completa. El registro del trabajo 138512878260 confirma todos esos pasos. La ejecución Android 45413371629 también terminó correctamente. El registro del trabajo 138512877244 confirma Brave 1.95.104 / Android 11 emulado con Gboard: contraseña con ojo, cambio de aplicación y retorno, nombre y título del anfitrión y nombre del invitado admiten toques reales del teclado, Backspace y reescritura. No se emplean pegado, diálogos nativos ni inyección de texto por CDP.
+
+El resultado de escritorio no debe describirse como una reproducción del teclado del teléfono. La información del caso confirma Brave 1.95.104 y que pegar funciona, mientras escribir y borrar no. Falta identificar el teclado utilizado y comprobar la misma combinación física antes de atribuir una causa definitiva.
