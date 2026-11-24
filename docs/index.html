@@ -10,7 +10,7 @@
     <title>Lumen Interview</title>
     <link rel="icon" type="image/webp" href="assets/lumi-icon.webp" />
     <link rel="apple-touch-icon" href="assets/lumi-icon.webp" />
-    <script defer src="access.js?v=0.7.1"></script>
+    <script defer src="access.js?v=0.8.0"></script>
     <style>
       :root { color-scheme: light; font-family: system-ui, sans-serif; color: #211b16; background: #fff1e2; }
       * { box-sizing: border-box; }
@@ -22,8 +22,17 @@
       .eyebrow { color: #e96c05; font-size: 10px; font-weight: 750; letter-spacing: .18em; margin-bottom: 18px; }
       h1 { margin: 0 0 18px; font-size: 34px; line-height: 1.15; letter-spacing: -1px; }
       .lead { color: #827367; font-size: 16px; line-height: 1.6; margin: 0 0 28px; }
-      #hostAccess { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 52px; margin-top: 12px; padding: 14px 18px; border: 0; border-radius: 13px; color: white; background: #f58012; }
-      #hostAccess:disabled { opacity: .65; }
+      label { display: block; font-size: 13px; font-weight: 600; color: #796047; margin-bottom: 8px; }
+      .password-entry { position: relative; }
+      #password { width: 100%; height: 52px; padding: 12px 52px 12px 14px; border: 1px solid #ebd8c8; border-radius: 12px; background: #fffaf5; color: #211b16; font: 16px system-ui, sans-serif; }
+      #password:focus { outline: 3px solid #f5801224; border-color: #f58012; }
+      button { font: 600 15px system-ui, sans-serif; cursor: pointer; }
+      #showPassword { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; padding: 11px; border: 0; border-radius: 9px; color: #93552e; background: transparent; }
+      #showPassword svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      #showPassword .eye-slash { display: none; }
+      #showPassword[aria-pressed="true"] .eye-slash { display: block; }
+      #unlock { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 52px; margin-top: 12px; padding: 14px 18px; border: 0; border-radius: 13px; color: white; background: #f58012; }
+      #unlock:disabled { opacity: .65; }
       #accessMessage { font-size: 13px; line-height: 1.5; color: #93552e; margin: 14px 0 0; }
       #studio { display: block; width: 100%; height: 100dvh; border: 0; }
       @media (max-width: 640px) { .access { padding: 18px; } .setup-card { padding: 28px; } }
@@ -42,9 +51,26 @@
         <p id="accessDescription" class="lead">
           Entra para preparar tu entrevista.
         </p>
-        <button id="hostAccess" type="button">
-          Entrar como anfitrión <span aria-hidden="true">→</span>
-        </button>
+        <form id="login" method="post">
+          <label for="password">Contraseña</label>
+          <div class="password-entry">
+            <input id="password" name="password" type="password"
+              autocomplete="current-password" autocapitalize="none"
+              autocorrect="off" spellcheck="false" enterkeyhint="go"
+              aria-label="Contraseña del anfitrión" required />
+            <button id="showPassword" type="button" aria-controls="password"
+              aria-pressed="false" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                <path class="eye-slash" d="m3 3 18 18" />
+              </svg>
+            </button>
+          </div>
+          <button id="unlock" class="primary" type="submit">
+            Entrar <span aria-hidden="true">→</span>
+          </button>
+        </form>
         <p id="accessMessage" role="status" aria-live="polite"></p>
       </section>
     </main>
