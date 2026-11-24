@@ -9,29 +9,14 @@ const unbase64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let busy=false;
 const passwordInput=document.getElementById('password');
 const showPassword=document.getElementById('showPassword');
-// A restored DOM focus can outlive Android's native keyboard connection.
-// Leave the editor unfocused while away, so the next real tap starts a fresh session.
-document.addEventListener('visibilitychange',()=>{
- if(document.hidden&&document.activeElement===passwordInput)passwordInput.blur();
-});
-window.addEventListener('pageshow',event=>{
- if(event.persisted&&document.activeElement===passwordInput)passwordInput.blur();
-});
-// Keep the native password control in the original HTML. Do not replace it,
-// autofocus it or intercept its typing/composition events.
-showPassword.addEventListener('pointerdown',event=>event.preventDefault());
+// The browser owns typing, composition, selection and focus completely.
 showPassword.addEventListener('click',()=>{
- const start=passwordInput.selectionStart,end=passwordInput.selectionEnd;
  const visible=passwordInput.type==='password';
- // End the previous editing session before changing its native input type.
- passwordInput.blur();
  passwordInput.type=visible?'text':'password';
  const label=visible?'Ocultar contraseña':'Mostrar contraseña';
  showPassword.setAttribute('aria-label',label);
  showPassword.title=label;
  showPassword.setAttribute('aria-pressed',String(visible));
- passwordInput.focus({preventScroll:true});
- if(start!==null&&end!==null)passwordInput.setSelectionRange(start,end);
 });
 async function envelope(role){
  const response=await fetch(`sealed-${role}.json`,{cache:'no-store'});
@@ -67,9 +52,10 @@ function openApp(payload){
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(busy)return;busy=true;
  const button=document.getElementById('unlock');button.disabled=true;message.textContent='Abriendo estudio…';
+ const submittedPassword=passwordInput.value;
  try{
   const data=await envelope('host');
-  const material=await crypto.subtle.importKey('raw',enc.encode(document.getElementById('password').value),'PBKDF2',false,['deriveKey']);
+  const material=await crypto.subtle.importKey('raw',enc.encode(submittedPassword),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:unbase64(data.salt),iterations:data.iterations,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['decrypt']);
   const payload=await decrypt(data,key);document.getElementById('password').value='';openApp(payload);
  }catch(e){message.textContent=e.name==='OperationError'?'Contraseña incorrecta.':(e.message||'No se pudo abrir el estudio.');}

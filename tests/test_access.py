@@ -22,6 +22,14 @@ try:
         if engine=='chromium':
             launch.update(executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path,args=['--no-sandbox'])
         browser=browser_type.launch(**launch)
+        # With all page JavaScript disabled, native typing and editing must work.
+        plain_ctx=browser.new_context(java_script_enabled=False)
+        plain=plain_ctx.new_page();plain.goto(url)
+        plain.locator('#password').click()
+        plain.keyboard.insert_text('abc')
+        plain.keyboard.press('Backspace')
+        assert plain.locator('#password').input_value()=='ab'
+        plain_ctx.close()
         def studio(top):
             top.frame_locator('#studio').locator('#heading').wait_for(timeout=15000)
             return top.locator('#studio').element_handle().content_frame()
@@ -51,6 +59,7 @@ try:
             assert password.evaluate('el => document.activeElement===el')
             assert password.evaluate("el=>el.tagName==='INPUT'")
             assert mobile.locator('iframe').count()==0
+            assert mobile.locator('link[rel=stylesheet]').count()==0
             assert password.get_attribute('type')=='password'
             # Insert committed text as a software keyboard/IME does, rather
             # than only generating desktop physical-key events.
@@ -60,7 +69,6 @@ try:
             mobile.locator('#showPassword').tap()
             assert password.get_attribute('type')=='text'
             assert password.input_value()=='incorrecta'
-            assert password.evaluate('el => document.activeElement===el')
             mobile.locator('#showPassword').tap()
             assert password.get_attribute('type')=='password'
             mobile.locator('#unlock').tap()
@@ -83,7 +91,7 @@ try:
         fallback.locator('#showPassword').click()
         assert fallback.locator('#password').get_attribute('type')=='password'
         fallback_ctx.close()
-        print('PASS: campo password nativo estable, sin iframe durante la escritura; ojo conserva valor, selección y foco. Motor:',engine)
+        print('PASS: campo password nativo estable, sin iframe durante la escritura; ojo conserva el valor; el navegador gestiona el foco y la edición. Motor:',engine)
         key=host.evaluate('window.ESTUDIO_GUEST_KEY')
         invite=url+'#room=entrevista-'+'a'*48+'&key='+'b'*48+'&access='+key
         guest=browser.new_page()

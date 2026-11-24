@@ -69,6 +69,7 @@ with sync_playwright() as p:
  touch('#showPassword')
  assert field.get_attribute('type')=='text'
  assert field.input_value()=='abc'
+ touch('#password')
  # Editing must still work after toggling the eye, without pasting or CDP typing.
  adb('shell','input','tap','995','1550');time.sleep(.3)
  assert field.input_value()=='ab','Backspace after eye failed'
@@ -76,6 +77,7 @@ with sync_playwright() as p:
  assert field.input_value()=='abc'
  touch('#showPassword')
  assert field.get_attribute('type')=='password'
+ touch('#password')
  dump('after-editing')
  # Re-entering Brave after another app must create a fresh native editing session.
  adb('shell','input','keyevent','3');time.sleep(1)
