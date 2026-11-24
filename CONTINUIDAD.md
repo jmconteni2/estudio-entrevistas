@@ -63,3 +63,12 @@ El bloqueo de pantalla se valida con un doble de Wake Lock para solicitarlo una 
 La aplicación hace su propia llamada: no graba Zoom ni otras aplicaciones. Usa PeerJS público gratuito y STUN, sin TURN configurado; algunas redes pueden impedir conectar. Mantener página visible y pantalla activa: los sistemas móviles pueden suspenderla. No están certificados móviles físicos, todas las redes, sesiones de horas ni recuperación de archivos después de un cierre abrupto. Las grabaciones son locales; exportarlas antes de borrar los datos del navegador.
 
 El usuario quiere la URL final y una prueba normal de uso, sin encargarse de configuraciones ni comprobaciones intermedias. Seguir corrigiendo autónomamente dentro de ese alcance.
+
+
+## Acceso móvil v0.6.3
+
+El propietario confirmó que el teclado escribía en Chrome Android y no en Brave. Los cambios previos de autofocus y de tipo de input no resolvieron su caso. No dar el fallo por reproducido ni su causa por confirmada.
+
+El acceso usa ahora una textarea de una línea con máscara CSS en motores compatibles, sin autocompletado ni cambios de tipo. Evita la integración de input/password con el teclado y el gestor de credenciales. En motores sin text-security conserva el input password nativo. El ojo modifica solo la máscara, mantiene el contenido y el foco. Enter y la acción del teclado móvil envían el formulario sin introducir saltos de línea. No se modificaron el cifrado, la contraseña ni las invitaciones.
+
+Ejecución 45390427468 aprobada: 29 pruebas Node, navegador de aplicación, acceso en Chrome y Brave estable oficial v1.100.58 instalado en Ubuntu, y entrevista/grabación. Ambos navegadores verifican entrada táctil/IME y apertura con contraseña en vistas 360×640, 390×844 y 844×390. Esto incluye Brave de escritorio con emulación táctil, no un teléfono Android físico. Producción index.html y access.js iguales a la revisión local. El resultado en el teléfono concreto del propietario sigue sin confirmación.
