@@ -484,7 +484,7 @@ async function prepare() {
     });
     keepAwake();
     $("local").srcObject = stream;
-    $("localName").textContent = $("name").value.trim() || "Tú";
+    $("localName").textContent = $("name").value.trim() || "Anfitrión";
     show("controls");
     $("prepare").disabled = true;
     status("Cámara preparada");
