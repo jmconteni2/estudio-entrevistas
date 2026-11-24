@@ -478,3 +478,9 @@ test("retirada del invitado antes de grabar permite admitir el siguiente", async
   d.emit("data", { type: "ready" });
   assert.equal(t.run("peer.callCount"), 2);
 });
+
+test("se prefiere WebM por bloques a un MP4 con códec no especificado", () => {
+ const t=setup();
+ t.ctx.MediaRecorder.isTypeSupported=type=>type==='video/mp4'||type==='video/webm;codecs=vp8,opus';
+ assert.equal(t.run('mime()'),'video/webm;codecs=vp8,opus');
+});

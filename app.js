@@ -53,9 +53,9 @@ const safeName = (s) =>
   "Entrevista";
 const mimeTypes = [
   "video/mp4;codecs=avc1.42001f,mp4a.40.2",
-  "video/mp4",
   "video/webm;codecs=vp8,opus",
   "video/webm",
+  "video/mp4",
 ];
 function mime() {
   return mimeTypes.find((x) => MediaRecorder.isTypeSupported(x));
