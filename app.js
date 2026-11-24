@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id),
   status = (s) => ($("status").textContent = s),
   notice = (s) => ($("notice").textContent = s);
 const params = new URLSearchParams(location.hash.slice(1)),
-  guest = params.has("room"),
+  guest = window.ESTUDIO_MODE ? window.ESTUDIO_MODE === "guest" : params.has("room"),
   roomParam = params.get("room"),
   tokenParam = params.get("key");
 let connecting = false,
@@ -396,8 +396,8 @@ async function create() {
     const p = await openPeer(room);
     p.on("connection", bindConn);
     p.on("call", (c) => c.close());
-    const u = new URL(location.href);
-    u.hash = new URLSearchParams({ room, key: token }).toString();
+    const u = new URL(window.ESTUDIO_ENTRY_URL || location.href);
+    u.hash = new URLSearchParams({ room, key: token, ...(window.ESTUDIO_GUEST_KEY ? { access: window.ESTUDIO_GUEST_KEY } : {}) }).toString();
     $("link").value = u.href;
     show("invitation");
     show("create", false);
@@ -707,7 +707,7 @@ async function finishSession(notify = true) {
   }
 }
 async function openWriter(name) {
-  const worker = new Worker("storage-worker.js");
+  const worker = new Worker(new URL("storage-worker.js", document.baseURI));
   let seq = 0,
     closed = false;
   const requests = new Map();

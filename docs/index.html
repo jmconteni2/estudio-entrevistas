@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>Estudio de entrevistas</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="access.js"></script>
+<style>body{min-height:100dvh}.access{max-width:440px;margin:10vh auto;padding:24px}#accessMessage{color:#ffd69b}#studio{display:block;width:100%;height:100dvh;border:0}#studio[hidden]{display:none}</style>
+</head>
+<body>
+<main class="access" id="accessPanel">
+<section>
+<h1>Estudio de entrevistas</h1>
+<p id="accessDescription">Acceso del anfitrión</p>
+<form id="login">
+<label>Contraseña<input id="password" type="password" autocomplete="current-password" required autofocus></label>
+<button id="unlock" type="submit">Entrar como anfitrión</button>
+</form>
+<p id="accessMessage" role="status" aria-live="polite"></p>
+</section>
+</main>
+<iframe id="studio" name="studio" title="Estudio de entrevistas" allow="camera; microphone; autoplay; clipboard-write; screen-wake-lock" hidden></iframe>
+</body>
+</html>

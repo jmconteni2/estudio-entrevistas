@@ -176,6 +176,7 @@ function setup(hash = "") {
       },
     },
     document: {
+      baseURI: "https://example.test/estudio/",
       getElementById: get,
       createElement: nodes,
       addEventListener() {},

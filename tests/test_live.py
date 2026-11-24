@@ -22,7 +22,7 @@ if not url:
     server = http.server.ThreadingHTTPServer(
         ('127.0.0.1', 0), functools.partial(Quiet, directory=str(ROOT)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    url = f'http://127.0.0.1:{server.server_port}/'
+    url = f'http://127.0.0.1:{server.server_port}/' + ('docs/' if os.environ.get('APP_PASSWORD') else '')
 
 try:
     with sync_playwright() as p:
@@ -32,11 +32,22 @@ try:
                                 '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'])
         host_ctx = browser.new_context(accept_downloads=True, permissions=['camera', 'microphone'])
         guest_ctx = browser.new_context(permissions=['camera', 'microphone'])
-        host, guest = host_ctx.new_page(), guest_ctx.new_page()
+        host_top, guest_top = host_ctx.new_page(), guest_ctx.new_page()
+        host, guest = host_top, guest_top
         errors = []
-        for page in (host, guest):
+        for page in (host_top, guest_top):
             page.on('pageerror', lambda e: errors.append(str(e)))
-        host.goto(url)
+        def unlock_host(top):
+            top.goto(url)
+            if not os.environ.get('APP_PASSWORD'):
+                return top
+            top.locator('#password').fill(os.environ['APP_PASSWORD'])
+            top.locator('#unlock').click()
+            top.locator('#studio').wait_for(state='visible', timeout=20000)
+            frame = top.frame(name='studio')
+            frame.locator('#prepare').wait_for(timeout=10000)
+            return frame
+        host = unlock_host(host_top)
         host.locator('#name').fill('Entrevistador automático')
         host.locator('#title').fill('Verificación técnica')
         host.locator('#prepare').click()
@@ -44,7 +55,12 @@ try:
         host.locator('#create').click()
         host.locator('#invitation').wait_for(state='visible', timeout=25000)
         invitation = host.locator('#link').input_value()
-        guest.goto(invitation)
+        guest_top.goto(invitation)
+        if os.environ.get('APP_PASSWORD'):
+            guest_top.locator('#studio').wait_for(state='visible', timeout=20000)
+            guest = guest_top.frame(name='studio')
+            guest.locator('#prepare').wait_for(timeout=10000)
+            assert guest.locator('#create').is_hidden(), 'El invitado ve controles del anfitrión'
         guest.locator('#name').fill('Invitado automático')
         guest.locator('#consent').check()
         guest.locator('#prepare').click()
@@ -63,7 +79,7 @@ try:
         guest.locator('#leave').click()
         host.locator('#result').wait_for(state='visible', timeout=20000)
         assert host.evaluate('stream.getTracks().every(t=>t.readyState==="ended")')
-        with host.expect_download() as download:
+        with host_top.expect_download() as download:
             host.locator('#download').click()
         with tempfile.TemporaryDirectory() as tmp:
             target = pathlib.Path(tmp) / download.value.suggested_filename
@@ -76,7 +92,7 @@ try:
             subprocess.run(['ffmpeg','-v','error','-i',str(target),'-t','3','-f','null','-'], check=True)
             print(json.dumps(info))
         # Reload must retain OPFS recording and permit another download.
-        host.reload()
+        host = unlock_host(host_top)
         host.get_by_role('button', name='Guardar vídeo', exact=True).wait_for(timeout=10000)
         assert not errors, errors
         print('PASS: señalización PeerJS real, WebRTC en dos contextos, consentimiento, admisión, grabación, salida, cierre, persistencia OPFS, descarga y decodificación de audio/vídeo.')

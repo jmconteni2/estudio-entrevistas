@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   local-regressions:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -24,8 +24,14 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python tests/test_browser.py
+      - run: node tools/seal.mjs
+        env:
+          ESTUDIO_PASSWORD: ci-password-only
+      - run: python tests/test_access.py
+        env:
+          APP_PASSWORD: ci-password-only
   real-signaling:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -35,4 +41,12 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - run: python -m playwright install --with-deps chromium
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tools/seal.mjs
+        env:
+          ESTUDIO_PASSWORD: ci-password-only
       - run: python tests/test_live.py
+        env:
+          APP_PASSWORD: ci-password-only
