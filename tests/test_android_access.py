@@ -29,19 +29,31 @@ for i in range(9):
  tree=dump('onboard-'+str(i))
  labels=[(n.attrib.get('text','')+' '+n.attrib.get('content-desc','')).strip() for n in tree.iter('node')]
  print('Android controls:',labels,flush=True)
- if any('Contraseña' in label for label in labels):break
+ if any('Contraseña' in label or '10.0.2.2:8765' in label for label in labels):break
  node=next((n for n in tree.iter('node') if re.fullmatch(r'Get started|Skip|Not now|No thanks|Maybe later|Continue|Start browsing|Got it',n.attrib.get('text',''),re.I)),None)
  if node is not None:tap_node(node)
- else:adb('shell','input','keyevent','4')
+ else:
+  cancel=next((n for n in tree.iter('node') if n.attrib.get('text')=='Cancel'),None)
+  if cancel is not None:tap_node(cancel)
+  else:break
  time.sleep(2)
 adb('forward','tcp:9222','localabstract:chrome_devtools_remote')
 with sync_playwright() as p:
  browser=p.chromium.connect_over_cdp('http://127.0.0.1:9222',timeout=20000)
- page=next(page for context in browser.contexts for page in context.pages if '10.0.2.2' in page.url)
+ page=next((page for context in browser.contexts for page in context.pages if '10.0.2.2' in page.url),None)
+ if page is None:page=browser.contexts[0].new_page()
+ page.goto('http://10.0.2.2:8765/')
  page.locator('#password').wait_for()
  tree=dump('login')
- node=next(n for n in tree.iter('node') if 'Contraseña del anfitrión' in (n.attrib.get('text','')+n.attrib.get('content-desc','')))
- tap_node(node);time.sleep(2)
+ node=next((n for n in tree.iter('node') if 'Contraseña del anfitrión' in (n.attrib.get('text','')+n.attrib.get('content-desc',''))),None)
+ if node is not None:tap_node(node)
+ else:
+  box=page.locator('#password').bounding_box()
+  web=next(n for n in tree.iter('node') if 'WebView' in n.attrib.get('class','') or n.attrib.get('text')=='Web View')
+  x1,y1,x2,y2=map(int,re.findall(r'\d+',web.attrib['bounds']))
+  scale=(x2-x1)/page.evaluate('innerWidth')
+  adb('shell','input','tap',str(round(x1+(box['x']+20)*scale)),str(round(y1+(box['y']+20)*scale)))
+ time.sleep(2)
  tree=dump('keyboard')
  keys=[(n.attrib.get('text',''),n.attrib.get('content-desc',''),n.attrib.get('bounds','')) for n in tree.iter('node')]
  print('Keyboard controls:',keys,flush=True)
