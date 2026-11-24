@@ -1,6 +1,7 @@
 """Local Chromium smoke test with simulated signaling and genuine media/storage APIs."""
 import http.server, threading, functools, pathlib, tempfile, subprocess, os, shutil
 from playwright.sync_api import sync_playwright
+from media_check import check_media
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*args): pass
@@ -23,7 +24,7 @@ try:
   with page.expect_download() as d:page.locator('#download').click()
   with tempfile.TemporaryDirectory() as tmp:
    target=pathlib.Path(tmp)/d.value.suggested_filename;d.value.save_as(target);assert target.stat().st_size>10000
-   result=subprocess.check_output(['ffprobe','-v','error','-show_entries','stream=codec_type,codec_name,width,height','-of','json',str(target)],text=True); print(result);assert '"video"' in result and '"audio"' in result
+   print(check_media(target))
   assert not errors, errors
   print('PASS: cámara/micrófono simulados, invitación, rechazo de token incorrecto, admisión, grabación real, escritura OPFS, exportación y pistas de audio/vídeo. Señalización simulada; no prueba WebRTC entre redes.')
   browser.close()

@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import threading
 from playwright.sync_api import sync_playwright
+from media_check import check_media
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 server = None
@@ -85,11 +86,7 @@ try:
             target = pathlib.Path(tmp) / download.value.suggested_filename
             download.value.save_as(target)
             assert target.stat().st_size > 10000
-            info = json.loads(subprocess.check_output([
-                'ffprobe','-v','error','-show_entries',
-                'stream=codec_type,codec_name,width,height','-of','json',str(target)], text=True))
-            assert {s['codec_type'] for s in info['streams']} >= {'audio','video'}
-            subprocess.run(['ffmpeg','-v','error','-i',str(target),'-t','3','-f','null','-'], check=True)
+            info = check_media(target)
             print(json.dumps(info))
         # Reload must retain OPFS recording and permit another download.
         host = unlock_host(host_top)
