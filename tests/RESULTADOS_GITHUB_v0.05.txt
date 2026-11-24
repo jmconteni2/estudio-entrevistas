@@ -1,0 +1,17 @@
+Lumen Interview v0.05 — resultados finales
+Commit probado: 3e0959c47517e53dc1ae989ce87f50ea06cb0512
+Batería: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45362881233
+Despliegue: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45362880978
+Estado: success
+
+2026-11-24T09:11:58.9040851Z # tests 28
+2026-11-24T09:11:58.9041350Z # pass 28
+2026-11-24T09:11:58.9041579Z # fail 0
+2026-11-24T09:12:14.1691416Z PASS: enlace sin conexión ni cámara, persistencia tras recargar, token incorrecto rechazado, admisión automática, grabación OPFS y archivo decodificado.
+2026-11-24T09:12:16.4244175Z PASS: contraseña incorrecta rechazada; contraseña correcta abre anfitrión; invitación abre invitado sin contraseña; enlace incompleto rechazado.
+2026-11-24T09:12:37.6177537Z {"video": "vp8", "audio": "opus", "width": 1280, "height": 720}
+2026-11-24T09:12:37.6178215Z {"video": "vp8", "audio": "opus", "width": 720, "height": 720}
+2026-11-24T09:12:37.6179775Z PASS: invitación anticipada, nombre obligatorio y visible, cámaras y orientaciones independientes, composiciones exportadas HH/VV/mixtas, foco independiente, invitación terminada bloqueada tras recargar, invitación nueva válida, vídeos 1280x720 y 720x720 decodificados.
+
+Revisión adicional: recursos HTTPS idénticos, icono WebP incluido, composiciones exportadas revisadas (HH, VV, mixtas y foco), marca completa sin recortes. Se conservó la clave de invitaciones al regenerar los paquetes.
+

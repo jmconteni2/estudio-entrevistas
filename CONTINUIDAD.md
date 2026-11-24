@@ -1,4 +1,4 @@
-# Continuidad — Estudio de entrevistas v0.04
+# Continuidad — Lumen Interview v0.05
 
 Proyecto independiente del usuario, publicado en https://jmconteni2.github.io/estudio-entrevistas/ . Repositorio público: https://github.com/jmconteni2/estudio-entrevistas . No mezclar con BookTrigger ni J.M. Pocket.
 
@@ -16,6 +16,18 @@ La petición del usuario es preparar enlaces antes de la entrevista, sin activar
 
 Diseño claro marfil y violeta; cámara y botones solo durante la sesión; detalles opcionales y grabaciones plegadas. En móvil, cámara propia en miniatura. Retirados información técnica, diagnóstico y pie promocional.
 
+## Cambios v0.05
+
+Marca visible Lumen Interview, icono de Lumi con micrófono adaptado dentro de un cuadrado redondeado; colores crema/naranja según la captura del propietario, utilizada solo como referencia de color. El icono está en assets/lumi-icon.webp y docs/assets/lumi-icon.webp; no se debe copiar la captura del otro sitio a esta aplicación.
+
+El invitado debe indicar su nombre antes de pedir cámara. Al acabar no se ofrece Volver a entrar; se marca la invitación terminada en ese navegador y se retira la sala del anfitrión. Otra sesión requiere una nueva invitación.
+
+Cada participante puede cambiar su orientación (encuadre, sin giro de 90°) con el icono rectangular, antes o después de entrar. Se sincroniza por el canal existente. Pulsar una cámara la destaca y reduce la otra. El foco del invitado solo cambia su propia vista; el foco del anfitrión afecta a la grabación.
+
+sceneLayout es la fuente común de posiciones para los elementos de cámara y la composición Canvas. Por defecto HH usa disposición diagonal superpuesta; VV usa dos retratos juntos; mixto distribuye ambos encuadres. recordingSize elige 1280×720 en HD salvo inicio VV, que utiliza 720×720. No cambiar las dimensiones del Canvas durante la captura: los cambios de orientación posteriores se encuadran dentro del tamaño inicial.
+
+El fondo y los bordes, nombres y marca quedan incrustados en el archivo. El distintivo dice En vivo y tiene punto rojo pulsante. Wake Lock se solicita durante preparación/espera/entrevista y se libera al acabar; se ha retirado el recordatorio permanente de mantener pantalla encendida, sin prometer compatibilidad universal.
+
 ## Archivos
 
 - `app.js`, `index.html`, `style.css`, `storage-worker.js`: fuentes de la aplicación.
@@ -32,11 +44,13 @@ Si se modifica app.js o la plantilla HTML, regenerar los paquetes de producción
 
 ## Evidencia obtenida
 
-Batería v0.04 completa aprobada: ejecución 45356316970, trabajo 138314909854, commit e14552669d72f24f0b397aeca21a9f3bc5b15bf9. Las 22 pruebas Node y las tres pruebas de navegador pasaron. Se verificaron invitación sin cámara ni señalización, conservación del enlace tras cerrar y reabrir al anfitrión, invitado temprano con espera y entrada automática sin nuevas pulsaciones, reproducción automática de ambas cámaras, AudioContext activo con salida remota conectada, grabación, OPFS, descarga y decodificación VP8 a 1280×720 y audio Opus.
+Batería final v0.05 aprobada: ejecución 45362881233, trabajo 138337090594, commit 3e0959c47517e53dc1ae989ce87f50ea06cb0512. Las 28 pruebas Node y las tres pruebas de navegador pasaron. Se verificaron enlace anticipado, nombre del invitado, dos orientaciones independientes y foco local que no cambia la grabación del otro, las composiciones exportadas y dos grabaciones reales con medios sintéticos. VP8/Opus a 1280×720 y 720×720 decodificados correctamente.
 
-Despliegue correcto: ejecución 45356316711. Se compararon siete recursos HTTPS de producción con los archivos locales y coinciden. Se revisaron capturas del diseño de escritorio y móvil; el móvil a 390 px no desborda. El empaquetado conservó la misma clave de invitado antes y después de actualizar.
+Despliegue correcto: ejecución 45362880978. Ocho recursos HTTPS, incluido el icono, iguales byte a byte a la revisión local. Se revisaron las imágenes de vídeo HH, VV cuadrado y mixtos y el móvil; la marca completa aparece sin recortar. La contraseña no figura en el código público y la clave de invitación se conservó al regenerar.
 
-Las capturas son de pruebas con medios sintéticos y se guardaron temporalmente en artefactos de Actions para revisión interna. No representan personas reales. No hay pruebas de dispositivos físicos ni de todas las redes. Los resultados anteriores de v0.03 permanecen en el archivo histórico separado.
+La prueba comprueba también que el invitado ve cierre sin Volver a entrar y que recargar el mismo enlace mantiene la sesión terminada en su navegador. Una invitación nueva permite otra entrevista. No hay base de datos ni servidor de revocaciones; la sala antigua del anfitrión se retira al acabar.
+
+El bloqueo de pantalla se valida con un doble de Wake Lock para solicitarlo una vez y liberarlo; esto no equivale a certificar que todos los sistemas operativos impidan apagar la pantalla. Las capturas y los vídeos de pruebas utilizan medios sintéticos, no personas reales.
 
 ## Límites
 

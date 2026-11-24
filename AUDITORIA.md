@@ -1,3 +1,21 @@
+# Lumen Interview v0.05 — cámaras, identidad y presentación
+
+El nombre visible es Lumen Interview. La captura de otro sitio se utilizó solo como referencia de color: crema, naranja y carbón. El personaje de Lumi con micrófono se adaptó mediante generación de imagen a un icono propio de esquinas redondeadas, incorporado a la cabecera, acceso, favicon y marca del vídeo. No se publicó la captura ni la fotografía original sin adaptar.
+
+Se exige el nombre del invitado antes de pedir cámara; aparece tanto en la llamada como en el archivo. Al terminar, la vista del invitado queda cerrada sin Volver a entrar y se marca la invitación usada en su navegador. La sala del anfitrión se descarta. Otra entrevista requiere un enlace nuevo; no se ha añadido un servicio remoto de revocaciones.
+
+El encuadre de cada cámara es independiente y puede elegirse antes de entrar o cambiarse durante la sesión. Se ajusta su relación de aspecto, sin girar de lado la imagen. Los cambios se transmiten por el canal existente. El foco de cámara del invitado no altera el foco del anfitrión ni su grabación.
+
+Las posiciones de DOM y Canvas proceden de sceneLayout. HH presenta dos ventanas escalonadas y superpuestas como en el boceto; VV, dos retratos juntos; los casos mixtos mantienen el encuadre de ambos. Pulsar una cámara la destaca y reduce la otra. El archivo empieza en 1280×720 (HD) o 720×720 si ambos encuadres son verticales. El tamaño queda fijo durante el archivo; cambios posteriores se componen dentro de esas dimensiones. Fondo carbón con degradado cálido, bordes redondeados, nombres y marca incrustados.
+
+El indicador es En vivo con punto rojo pulsante, salvo preferencia de movimiento reducido. Se solicita Screen Wake Lock también durante preparación y espera y se libera al acabar. Se retiró el recordatorio fijo, sin afirmar que un navegador incompatible pueda impedir toda suspensión del sistema.
+
+Las comprobaciones de lógica cubren límites geométricos de todos los encuadres y focos, nombre obligatorio, cierre de invitación, elección de encuadre antes de pedir cámara y liberación del bloqueo de pantalla. Las pruebas reales de navegador cambian las dos orientaciones por separado, comprueban el foco independiente, exportan composiciones HH/VV/mixtas y decodifican dos archivos (1280×720 y 720×720). Las imágenes de revisión proceden de medios sintéticos, no de personas reales.
+
+Resultado final v0.05: ejecución 45362881233, trabajo 138337090594, commit 3e0959c47517e53dc1ae989ce87f50ea06cb0512, correcto. Las 28 pruebas Node y las tres pruebas de navegador pasaron. Despliegue 45362880978 correcto. Ocho recursos HTTPS idénticos a la versión revisada; se comprobó el icono, la marca completa y las composiciones en imágenes extraídas del Canvas exportado. Dos archivos VP8/Opus de 1280×720 y 720×720 decodificados sin error.
+
+Los resultados de versiones anteriores se conservan a continuación como historial.
+
 # Actualización v0.04 — interfaz e invitaciones anticipadas
 
 El propietario pidió simplificar el diseño, preparar invitaciones sin activar cámara ni conectarse en directo y eliminar aceptaciones posteriores. El enlace válido autoriza al invitado. Al entrar, este acepta la grabación y concede los permisos seguidos; no existe un botón posterior de admisión. Si el anfitrión está desconectado se muestra «En espera de que el anfitrión se conecte.» y se reintenta automáticamente.

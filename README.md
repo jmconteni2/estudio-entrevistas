@@ -1,4 +1,4 @@
-# Estudio de entrevistas — v0.04
+# Lumen Interview — v0.05
 
 Aplicación estática para videollamadas de dos personas con grabación audiovisual local. El entrevistador crea la invitación, admite al invitado y guarda el vídeo en su dispositivo. El invitado acepta la grabación y solicita entrada. No utiliza Zoom ni captura una aplicación externa.
 
@@ -6,9 +6,11 @@ No requiere Cloudflare, base de datos, backend propio, suscripciones ni claves c
 
 ## Estado
 
-Publicada en https://jmconteni2.github.io/estudio-entrevistas/ desde la carpeta `docs` de `main`. Repositorio independiente: https://github.com/jmconteni2/estudio-entrevistas .
+Lumen Interview está publicada en https://jmconteni2.github.io/estudio-entrevistas/ desde `main` y `/docs`. La dirección y el repositorio independiente se conservan.
 
-La v0.04 simplifica el diseño y permite preparar invitaciones sin cámara ni conexión en directo. El invitado se conecta automáticamente cuando el anfitrión abre el estudio. La prueba de dos contextos verifica cierre y reapertura del anfitrión con el mismo enlace, espera del invitado sin nuevas pulsaciones, grabación, descarga y decodificación, además de la vista móvil a 390 px. Consultar `tests/RESULTADOS_GITHUB_v0.04.txt` para los resultados de la batería de esta versión. No se han probado todos los teléfonos físicos, todas las redes ni sesiones de horas.
+Batería v0.05 aprobada: 28 pruebas de lógica y tres pruebas de navegador. Se comprobó el nombre obligatorio, el fin de sesión sin regreso del invitado, la nueva invitación, orientaciones y focos independientes, vídeo HH/VV/mixto con nombres y marca, sonido, persistencia, descarga y decodificación de archivos 1280×720 y 720×720. Se revisaron imágenes del archivo exportado, no solo de la interfaz. Resultados en `tests/RESULTADOS_GITHUB_v0.05.txt`.
+
+Los ocho recursos HTTPS comprobados coinciden con los archivos revisados. No se certifican todos los teléfonos físicos, todas las redes ni entrevistas de varias horas. Las limitaciones de conexión directa y del sistema operativo continúan aplicando.
 
 ## Acceso
 
@@ -23,13 +25,33 @@ Los paquetes de producción ya están preparados en `docs/`. `tools/seal.mjs` pe
 1. El anfitrión entra con su contraseña y pulsa **Generar enlace de invitación**. No se pide cámara ni se abre una conexión al preparar el enlace.
 2. Copia o comparte el enlace. Puede cerrar la página y volver después desde el mismo navegador y dispositivo. El enlace y los datos de la entrevista se conservan localmente.
 3. A la hora acordada, el anfitrión pulsa **Entrar al estudio** y concede los permisos de cámara y micrófono.
-4. El invitado abre su enlace y pulsa **Aceptar y entrar**. Acepta la grabación y concede los permisos seguidos. La invitación válida autoriza su entrada: no hay un paso posterior de admisión del anfitrión.
+4. El invitado abre su enlace, escribe su nombre y pulsa **Aceptar y entrar**. Acepta la grabación y concede los permisos seguidos. La invitación válida autoriza su entrada: no hay un paso posterior de admisión del anfitrión.
 5. Si el anfitrión no está conectado, el invitado ve **En espera de que el anfitrión se conecte.** La aplicación reintenta y conecta automáticamente cuando el anfitrión abre su estudio, sin nuevos botones.
 6. **Finalizar** conserva el vídeo y ofrece **Descargar vídeo**. Las grabaciones anteriores se consultan en **Mis grabaciones**.
 
 Nombre, título y calidad quedan bajo un control opcional. Las cámaras y los controles de llamada aparecen al entrar al estudio; la información técnica y el pie promocional se han retirado. El móvil muestra la cámara del invitado como vista principal y la propia en una miniatura.
 
 Mantener la página visible y la pantalla activa durante la entrevista. El teléfono puede suspender el vídeo si se bloquea o se cambia de aplicación. Las grabaciones y las invitaciones pertenecen al navegador y dispositivo que las creó. Borrar sus datos las elimina; exportar el vídeo antes de hacerlo. No se garantiza recuperar un archivo tras un cierre abrupto.
+
+## Cámaras y composición del vídeo
+
+Cada participante elige el encuadre horizontal o vertical de su cámara con el icono rectangular, antes de entrar o durante la entrevista. Se ajusta el encuadre sin girar de lado la imagen. La selección se comunica al otro participante.
+
+| Cámaras al iniciar | Composición automática | Archivo en calidad HD |
+| --- | --- | --- |
+| Las dos horizontales | Dos ventanas escalonadas y parcialmente superpuestas, como en el boceto del propietario | 1280×720 |
+| Las dos verticales | Ventanas verticales juntas, una al lado de la otra | 720×720 |
+| Una horizontal y otra vertical | Distribución mixta que respeta los dos encuadres | 1280×720 |
+
+Se puede pulsar cualquiera de las cámaras para destacarla y reducir la otra. La vista del invitado es independiente. La selección del anfitrión es la que se aplica a la grabación. El fondo es carbón con un degradado cálido; cada cámara lleva borde fino, esquinas redondeadas y su nombre. El vídeo incluye el icono de Lumi, la marca Lumen Interview y el indicador En vivo.
+
+El tamaño del archivo de vídeo se fija al comenzar. Los cambios posteriores de encuadre o cámara principal adaptan la composición dentro de ese tamaño, para mantener un único archivo continuo.
+
+## Cierre y pantalla activa
+
+Al terminar, el invitado ve una despedida sin opción de volver a entrar. La invitación terminada se marca en su navegador y el anfitrión descarta la sala al finalizar; una nueva entrevista requiere un enlace nuevo. No se añade una base de datos de revocaciones: otro navegador puede abrir un enlace antiguo, pero no conecta con una sala del anfitrión que ya ha sido retirada.
+
+Se solicita Screen Wake Lock desde la preparación y se vuelve a pedir al recuperar la visibilidad si se ha liberado. Se libera al terminar. La compatibilidad y las decisiones del sistema operativo siguen aplicando; no se garantiza impedir una suspensión forzada o una batería agotada.
 
 ## Arquitectura
 
