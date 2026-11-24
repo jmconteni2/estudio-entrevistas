@@ -44,37 +44,84 @@ with sync_playwright() as p:
  page=next((page for context in browser.contexts for page in context.pages if 'localhost' in page.url),None)
  if page is None:page=browser.contexts[0].new_page()
  page.goto('http://localhost:8765/')
- assert page.locator('input,textarea,form,iframe').count()==0
- # Leave the native dialog open for Android touch input instead of accepting via CDP.
- page.on('dialog',lambda dialog:None)
- tree=dump('entry')
- box=page.locator('#hostAccess').bounding_box()
- toolbar=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/control_container'))
- top=int(re.findall(r'\d+',toolbar.attrib['bounds'])[-1]);scale=1080/page.evaluate('innerWidth')
- adb('shell','input','tap',str(round((box['x']+box['width']/2)*scale)),str(round(top+(box['y']+box['height']/2)*scale)))
- time.sleep(1)
- tree=dump('native-dialog')
- editor=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/js_modal_dialog_prompt'))
- tap_node(editor);time.sleep(1)
- dump('native-keyboard')
+ field=page.locator('#password');field.wait_for()
+ assert page.locator('iframe').count()==0
+ assert field.evaluate("el=>el.tagName==='INPUT' && el.type==='password'")
+ def touch(selector,scope=None):
+  target=(scope or page).locator(selector)
+  target.scroll_into_view_if_needed()
+  tree=dump('position')
+  box=target.bounding_box()
+  toolbar=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/control_container'))
+  top=int(re.findall(r'\d+',toolbar.attrib['bounds'])[-1])
+  scale=1080/page.evaluate('innerWidth')
+  adb('shell','input','tap',str(round((box['x']+box['width']/2)*scale)),str(round(top+(box['y']+box['height']/2)*scale)))
+  time.sleep(.5)
+ touch('#password');time.sleep(1)
+ dump('keyboard')
+ # Pixel 2 / Android 11 Gboard coordinates inspected in the previous captures.
  for x,y in [(110,1400),(645,1550),(430,1550)]:
   adb('shell','input','tap',str(x),str(y));time.sleep(.3)
- def text():
-  tree=dump('dialog-state')
-  return next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/js_modal_dialog_prompt')).attrib.get('text','')
- typed=text();assert typed.lower()=='abc',typed
+ assert field.input_value()=='abc',field.input_value()
  adb('shell','input','tap','995','1550');time.sleep(.3)
- assert text()==typed[:-1],'Native dialog Backspace failed'
+ assert field.input_value()=='ab','Soft-keyboard Backspace failed'
  adb('shell','input','tap','430','1550');time.sleep(.3)
- typed=text();assert typed.lower()=='abc'
- # Seal a test-only fixture using exactly the case supplied by Android's keyboard.
- subprocess.run(['node',str(ROOT/'tools/seal.mjs')],env={**os.environ,'ESTUDIO_PASSWORD':typed,'ESTUDIO_TEST_BUILD':'1'},check=True)
- tree=dump('dialog-edited')
- ok=next(n for n in tree.iter('node') if n.attrib.get('resource-id')=='android:id/button1' or n.attrib.get('resource-id','').endswith('/positive_button') or n.attrib.get('text') in ['OK','Aceptar'])
- tap_node(ok)
+ assert field.input_value()=='abc'
+ dump('native-typed')
+ touch('#showPassword')
+ assert field.get_attribute('type')=='text'
+ assert field.input_value()=='abc'
+ touch('#password')
+ # Editing must still work after toggling the eye, without pasting or CDP typing.
+ adb('shell','input','tap','995','1550');time.sleep(.3)
+ assert field.input_value()=='ab','Backspace after eye failed'
+ adb('shell','input','tap','430','1550');time.sleep(.3)
+ assert field.input_value()=='abc'
+ touch('#showPassword')
+ assert field.get_attribute('type')=='password'
+ touch('#password')
+ dump('after-editing')
+ # Re-entering Brave after another app must create a fresh native editing session.
+ adb('shell','input','keyevent','3');time.sleep(1)
+ activity=adb('shell','cmd','package','resolve-activity','--brief','-a','android.intent.action.MAIN','-c','android.intent.category.LAUNCHER','com.brave.browser').splitlines()[-1]
+ adb('shell','am','start','-n',activity);time.sleep(1)
+ touch('#password');time.sleep(1)
+ assert field.input_value()=='abc','Value was lost while switching apps'
+ adb('shell','input','tap','995','1550');time.sleep(.3)
+ assert field.input_value()=='ab','Backspace after returning to Brave failed'
+ adb('shell','input','tap','430','1550');time.sleep(.3)
+ assert field.input_value()=='abc'
+ dump('after-resume')
+ adb('shell','input','tap','995','1710')
  page.frame_locator('#studio').locator('#heading').wait_for(timeout=20000)
  assert page.frame_locator('#studio').locator('#heading').inner_text()=='Prepara tu próxima entrevista.'
  dump('host-unlocked')
- print('PASS: Brave Android 1.95.104 / Android 11: native Android EditText dialog receives software-keyboard touches, Backspace/retype and opens host. No web password field, CDP typing or paste.',flush=True)
+ host=page.frame(name='studio')
+ def edit_web_field(scope,selector,label):
+  target=scope.locator(selector)
+  touch(selector,scope);time.sleep(1)
+  dump(label+'-keyboard')
+  assert target.input_value()=='',label+' must start empty'
+  for x,y in [(110,1400),(645,1550),(430,1550)]:
+   adb('shell','input','tap',str(x),str(y));time.sleep(.3)
+  typed=target.input_value()
+  assert typed.lower()=='abc',(label,typed)
+  adb('shell','input','tap','995','1550');time.sleep(.3)
+  assert target.input_value()==typed[:-1],label+' Backspace failed'
+  adb('shell','input','tap','430','1550');time.sleep(.3)
+  assert target.input_value().lower()=='abc',label+' retype failed'
+  dump(label+'-edited')
+  adb('shell','input','keyevent','4');time.sleep(.5)
+ touch('#detailsToggle',host)
+ edit_web_field(host,'#name','host-name')
+ edit_web_field(host,'#title','host-title')
+ touch('#create',host)
+ invitation=host.locator('#link').input_value()
+ assert '#room=' in invitation
+ page.goto(invitation)
+ page.frame_locator('#studio').locator('#name').wait_for(timeout=20000)
+ guest=page.frame(name='studio')
+ edit_web_field(guest,'#name','guest-name')
+ print('PASS: Brave Android 1.95.104 / Android 11: password show/hide and resume; host name/title and guest name accept real software-keyboard typing, Backspace and retyping. No CDP typing, paste or native dialogs.',flush=True)
  browser.close()
 server.shutdown()

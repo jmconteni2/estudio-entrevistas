@@ -105,3 +105,8 @@ El formulario web se ha eliminado de la entrada de producción. El botón Entrar
 Comprobaciones 45405667896: correctas en Chrome, Brave de escritorio, Firefox y WebKit; cancelación, vacío, incorrecta, correcta, vistas móviles, invitación y entrevista/grabación. Las 29 pruebas Node pasaron. Android 45405667909, trabajo 138485604133: correcto en Brave 1.95.104 / Android 11 emulado. Se localizó específicamente el control nativo com.brave.browser:id/js_modal_dialog_prompt, evitando la barra de direcciones. Toques reales en Gboard escribieron, borraron y reescribieron; pulsar OK abrió el anfitrión. No se aceptó el diálogo mediante CDP ni se pegó texto. Las credenciales de prueba son aisladas.
 
 HTML y access.js v0.7.0 públicos coinciden con la revisión local. El bloqueo original del teléfono concreto no se ha reproducido: no atribuirlo como causa confirmada al cifrado ni a una característica de Brave. Este acceso sustituye el recorrido de edición web por uno nativo.
+
+
+## Auditoría de entrada 0.8.0
+
+El propietario rechaza window.prompt y cualquier botón alternativo para escribir: quiere el campo password con ojo y edición directa de nombre/título. La propuesta 0.7.2 no se publicó y está descartada. Esta rama se basa en f91ee4f, recupera el formulario estático y el ojo, y amplía las pruebas a los nombres de ambos participantes y al título. Ver AUDITORIA_ENTRADA.md: se distingue restaurar la interfaz de resolver el bloqueo en el teléfono. No dar el problema por resuelto sin reproducirlo.
