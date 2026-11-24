@@ -584,3 +584,5 @@ test("la pantalla solicita mantenerse activa y libera el bloqueo al acabar", asy
   t.run("cleanup()");
   assert.equal(sentinel.released, true);
 });
+
+test("la orientación se puede elegir antes de activar la cámara",async()=>{const t=setup();await t.run('toggleOrientation()');assert.equal(t.run('localOrientation'),'portrait');assert.equal(t.mediaCalls,0);assert.match(t.get('orientationSetup').title,/vertical/);});

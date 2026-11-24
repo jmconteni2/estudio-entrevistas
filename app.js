@@ -127,6 +127,7 @@ function sceneLayout(w, h, lo, ro, focus = null) {
   return { boxes, order: ["local", "remote"] };
 }
 function updateStage() {
+  for(const id of ['orientation','orientationSetup']){const button=$(id);if(!button)continue;button.textContent=localOrientation==='portrait'?'▯':'▭';button.title=localOrientation==='portrait'?'Tu cámara: vertical. Cambiar a horizontal':'Tu cámara: horizontal. Cambiar a vertical';button.setAttribute?.('aria-label',button.title);}
   const stage = $("stage");
   if (!stage?.style || !stage.clientWidth) return;
   stage.style.aspectRatio =
@@ -158,12 +159,7 @@ function updateStage() {
       String(focusedCamera === id),
     );
   }
-  $("orientation").textContent = localOrientation === "portrait" ? "▯" : "▭";
-  $("orientation").title =
-    localOrientation === "portrait"
-      ? "Cambiar tu cámara a horizontal"
-      : "Cambiar tu cámara a vertical";
-  $("orientation").setAttribute?.("aria-label", $("orientation").title);
+
 }
 function focusCamera(which) {
   focusedCamera = which;
@@ -1332,6 +1328,7 @@ if (guest) {
 setState(ending ? "result" : "home");
 $("focusLocal").onclick = () => focusCamera("local");
 $("focusRemote").onclick = () => focusCamera("remote");
+$("orientationSetup").onclick=()=>toggleOrientation();
 $("orientation").onclick = (e) => {
   e.stopPropagation();
   toggleOrientation();
@@ -1339,6 +1336,7 @@ $("orientation").onclick = (e) => {
 if (typeof ResizeObserver !== "undefined")
   new ResizeObserver(updateStage).observe($("stage"));
 window.addEventListener("resize", updateStage);
+updateStage();
 
 document.addEventListener("visibilitychange", () => {
   if (active && document.visibilityState === "hidden")

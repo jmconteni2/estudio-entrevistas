@@ -141,9 +141,10 @@ try:
         host.locator('#create').click()
         new_invitation=host.locator('#link').input_value()
         assert new_invitation!=invitation
+        host.locator('#orientationSetup').click()
+        assert host.evaluate('localOrientation')=='portrait'
+        assert host.evaluate('!stream'), 'Cambiar encuadre pidió cámara antes de entrar'
         host.locator('#prepare').click()
-        host.locator('#orientation').wait_for(state='visible',timeout=15000)
-        host.locator('#orientation').click()
         guest_top.close()
         guest_top=guest_ctx.new_page();guest_top.on('pageerror',lambda e:errors.append(str(e)))
         guest_top.goto(new_invitation)
