@@ -1,0 +1,12 @@
+Lumen Interview — acceso aislado v0.6.6
+Código probado: dfc9c1fe6c45facee53f62c0d406029ef9eb532c
+Motores: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45401875391
+Android: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45401875448
+Chrome, Brave escritorio, Firefox y WebKit: PASS.
+Escritura y borrado con JavaScript desactivado: PASS.
+29 pruebas Node, acceso, invitaciones y entrevista/grabación: PASS.
+
+2026-11-24T13:18:53.6800773Z Brave Android v1.95.104
+2026-11-24T13:20:27.0424092Z PASS: Brave Android 1.95.104 / Android 11: real software-keyboard touches type abc, delete/retype, show/hide, delete/retype again, resume after switching apps, edit again, and submit to host. No CDP typing or paste.
+
+No se ha reproducido ni confirmado la causa exacta del teléfono del propietario. El acceso reconstruido elimina las intervenciones sobre el teclado y separa la entrada de los estilos de la aplicación.

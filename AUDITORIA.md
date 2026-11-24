@@ -1,3 +1,17 @@
+# Acceso v0.6.6 — formulario aislado
+
+
+## Acceso v0.6.6 — reconstrucción aislada
+
+Se revisó la construcción del acceso, no solo el comportamiento específico de Brave. PBKDF2/AES-GCM solo interviene al enviar el formulario y no participa en la escritura. Se retiraron la hoja CSS general del estudio en la entrada, todos los ajustes no necesarios del input (máscara, appearance, text-fill, user-select y touch-action) y toda gestión manual de foco, selección, pulsaciones o composición. El ojo solo cambia el tipo y su etiqueta; después el usuario puede volver a tocar el campo de forma nativa. No hay autofocus ni iframe antes del desbloqueo. La pantalla de entrada tiene estilos propios, pequeños y autocontenidos; la aplicación se carga tras autenticar.
+
+Se captura el valor al enviar, antes de esperar la carga del paquete. No se modificaron la contraseña de producción, PBKDF2/AES-GCM ni las invitaciones. No hay detección de navegador ni excepción para un teléfono. La causa del fallo observado en el teléfono del propietario continúa sin confirmación; no declarar que los estilos ni el foco fueron su causa demostrada. El cambio elimina complejidad innecesaria y permite comprobar el comportamiento base.
+
+Comprobaciones 45401875391: correctas en Chrome, Brave de escritorio, Firefox y WebKit, incluyendo escritura y borrado con JavaScript desactivado; acceso correcto/incorrecto, ojo, invitación y entrada. También pasaron las 29 pruebas Node y el recorrido de entrevista y grabación. Android 45401875448, trabajo 138472277365: correcto con Brave Android oficial 1.95.104 sobre Android 11 emulado. Toques en el teclado real de Gboard escribieron abc, borraron y reescribieron, cambiaron el ojo y editaron de nuevo; después de salir y volver a Brave continuó la edición y entró como anfitrión mediante la tecla del teclado. No se usó texto inyectado por CDP ni pegado. Las claves y el paquete de pruebas son de fixture aislado, no de producción.
+
+HTML y access.js públicos v0.6.6 verificados byte a byte con la revisión local. Se mantiene la referencia de recurso versionada para evitar reutilizar un script anterior. El emulador no sustituye la observación del teléfono concreto.
+
+
 # Acceso v0.6.5 — revisión común y prueba Android
 
 

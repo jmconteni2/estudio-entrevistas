@@ -1,4 +1,4 @@
-# Lumen Interview — v0.06
+# Lumen Interview — v0.6.6
 
 Aplicación estática para videollamadas de dos personas con grabación audiovisual local. El entrevistador crea la invitación, admite al invitado y guarda el vídeo en su dispositivo. El invitado acepta la grabación y solicita entrada. No utiliza Zoom ni captura una aplicación externa.
 
@@ -105,3 +105,8 @@ APP_URL=<URL real de GitHub Pages> APP_PASSWORD=<contraseña solo en el entorno 
 Repositorio público independiente `jmconteni2/estudio-entrevistas`. Pages está configurado para servir `main` y `/docs`, con HTTPS. La raíz del repositorio conserva fuentes y pruebas; la carpeta `docs` contiene la entrada con contraseña, los paquetes cifrados y los recursos necesarios. No cambiar Pages a raíz: serviría la aplicación de desarrollo sin la puerta de acceso.
 
 Los tests verifican y no despliegan. Para cambios de la aplicación, regenerar los paquetes con la contraseña del propietario en el entorno de construcción y subir los archivos resultantes. La contraseña y las grabaciones no se suben.
+
+
+## Revisión de acceso v0.6.6
+
+La entrada utiliza un formulario HTML nativo y estilos propios. No carga la hoja general del estudio ni controla el foco o la escritura. Se verificaron escritura y borrado con JavaScript desactivado en los tres motores, acceso completo en Chrome/Brave/Firefox/WebKit y pulsaciones reales de Gboard en Brave 1.95.104 sobre Android 11 emulado. Evidencia en tests/RESULTADOS_ACCESO_v0.6.6.txt; el fallo del teléfono concreto no tiene causa confirmada.
