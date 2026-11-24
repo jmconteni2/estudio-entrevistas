@@ -18,7 +18,7 @@ apk=OUT/'brave.apk';urllib.request.urlretrieve(asset['browser_download_url'],apk
 print('Brave Android',release['tag_name'],flush=True)
 print(adb('install','-r',str(apk)),flush=True);apk.unlink()
 adb('shell','am','set-debug-app','--persistent','com.brave.browser')
-adb('shell','sh','-c',"'echo brave --no-first-run --disable-fre --no-default-browser-check > /data/local/tmp/brave-command-line'")
+adb('shell','sh','-c',"'echo _ --no-first-run --disable-fre --no-default-browser-check --force-renderer-accessibility > /data/local/tmp/chrome-command-line'")
 class Quiet(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
 server=http.server.ThreadingHTTPServer(('0.0.0.0',8765),functools.partial(Quiet,directory=str(ROOT/'docs')))
@@ -44,13 +44,16 @@ with sync_playwright() as p:
  if page is None:page=browser.contexts[0].new_page()
  page.goto('http://10.0.2.2:8765/')
  page.locator('#password').wait_for()
+ page.evaluate("window.entryEvents=[];for(const type of ['input','beforeinput','compositionstart','compositionend','focus','blur']) document.getElementById('password').addEventListener(type,e=>entryEvents.push({type:e.type,inputType:e.inputType,length:e.target.value.length}))")
  tree=dump('login')
  node=next((n for n in tree.iter('node') if 'Contraseña del anfitrión' in (n.attrib.get('text','')+n.attrib.get('content-desc',''))),None)
  if node is not None:tap_node(node)
  else:
   box=page.locator('#password').bounding_box()
-  web=next(n for n in tree.iter('node') if 'WebView' in n.attrib.get('class','') or n.attrib.get('text')=='Web View')
+  web=next(n for n in tree.iter('node') if 'WebView' in n.attrib.get('class','') or n.attrib.get('text')=='Web View' or n.attrib.get('content-desc')=='Web View')
   x1,y1,x2,y2=map(int,re.findall(r'\d+',web.attrib['bounds']))
+  toolbar=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/control_container'))
+  y1=int(re.findall(r'\d+',toolbar.attrib['bounds'])[-1])
   scale=(x2-x1)/page.evaluate('innerWidth')
   adb('shell','input','tap',str(round(x1+(box['x']+20)*scale)),str(round(y1+(box['y']+20)*scale)))
  time.sleep(2)
@@ -60,7 +63,9 @@ with sync_playwright() as p:
  # Tap visible soft-keyboard keys, rather than injecting text through CDP.
  for letter in 'abc':
   node=next((n for n in tree.iter('node') if letter in [n.attrib.get('text','').lower(),n.attrib.get('content-desc','').lower()]),None)
-  if node is None:raise AssertionError('Keyboard key not exposed: '+letter)
+  if node is None:
+   print('Field state:',page.evaluate("({active:document.activeElement.id,length:document.getElementById('password').value.length,events:entryEvents})"),flush=True)
+   raise AssertionError('Keyboard key not exposed: '+letter)
   tap_node(node);time.sleep(.3)
  assert page.locator('#password').input_value()=='abc',page.locator('#password').input_value()
  dump('typed')
