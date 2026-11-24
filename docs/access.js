@@ -55,3 +55,5 @@ if(params.has('room')){
   }catch(e){message.textContent=e.name==='OperationError'?'La invitación no es válida. Solicita un enlace nuevo al anfitrión.':(e.message||'No se pudo abrir la invitación.');}
  })();
 }
+// A different invitation is a new session, even when only the fragment changes.
+window.addEventListener('hashchange',()=>location.reload());
