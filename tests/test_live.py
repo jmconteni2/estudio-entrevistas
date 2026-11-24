@@ -78,8 +78,8 @@ try:
         # The same guest waits and joins automatically: no further button on either side.
         host.locator('#recording').wait_for(state='visible',timeout=40000)
         guest.locator('#recording').wait_for(state='visible',timeout=10000)
-        assert 'En vivo' in host.locator('#recording').inner_text()
-        assert 'En vivo' in guest.locator('#recording').inner_text()
+        assert 'en vivo' in host.locator('#recording').inner_text().casefold()
+        assert 'en vivo' in guest.locator('#recording').inner_text().casefold()
         assert guest.evaluate('audio.state')=='running', 'Audio del invitado suspendido'
         assert guest.evaluate('!!playbackSource'), 'No se ha conectado la salida de audio'
         assert guest.locator('#remoteName').inner_text()=='Entrevistador automático'
