@@ -41,7 +41,7 @@ function openApp(payload){
 hostAccess.addEventListener('click',async()=>{
  if(busy)return;
  // This is the browser's own native dialog, not a password field in the page.
- const submittedPassword=window.prompt('Contraseña del anfitrión (se mostrará al escribir):');
+ const submittedPassword=window.prompt('Contraseña');
  if(submittedPassword===null)return;
  if(!submittedPassword){message.textContent='Introduce la contraseña para entrar.';return;}
  busy=true;hostAccess.disabled=true;message.textContent='Abriendo estudio…';
