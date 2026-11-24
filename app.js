@@ -4,9 +4,14 @@ const $ = (id) => document.getElementById(id),
   status = (s) => ($("status").textContent = s),
   notice = (s) => ($("notice").textContent = s);
 const params = new URLSearchParams(location.hash.slice(1)),
-  guest = window.ESTUDIO_MODE ? window.ESTUDIO_MODE === "guest" : params.has("room"),
+  guest = window.ESTUDIO_MODE
+    ? window.ESTUDIO_MODE === "guest"
+    : params.has("room"),
   roomParam = params.get("room"),
   tokenParam = params.get("key");
+let retryTimer,
+  guestWaiting = false,
+  rejected = false;
 let connecting = false,
   admitted = false,
   preparing = false,
@@ -80,20 +85,70 @@ function setRemote(s) {
     });
 }
 $("remote").onclick = () => $("remote").play().catch(fail);
-function diag() {
-  $("diagnostics").textContent = JSON.stringify(
-    {
-      https: isSecureContext,
-      media: !!navigator.mediaDevices?.getUserMedia,
-      recorder: typeof MediaRecorder !== "undefined",
-      canvas: !!HTMLCanvasElement.prototype.captureStream,
-      storage: !!navigator.storage?.getDirectory,
-      peer: typeof Peer !== "undefined",
-      format: typeof MediaRecorder !== "undefined" ? mime() : null,
-    },
-    null,
-    2,
-  );
+function setState(value) {
+  if (document.body?.dataset) document.body.dataset.state = value;
+}
+function waitingMessage(title, text = "") {
+  $("waitingTitle").textContent = title;
+  $("waitingText").textContent = text;
+  show("stageMessage");
+}
+function waitForHost() {
+  if (ending || admitted || rejected) return;
+  guestWaiting = true;
+  status("En espera del anfitrión");
+  notice("");
+  waitingMessage("En espera de que el anfitrión se conecte.");
+  show("leave");
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => {
+    if (!ending && !admitted && !rejected) join();
+  }, 5000);
+}
+function savedInvitation() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("estudio-room") || "null");
+    return validRoom(saved?.room) && validToken(saved?.token) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+function displayInvitation() {
+  const u = new URL(window.ESTUDIO_ENTRY_URL || location.href);
+  u.hash = new URLSearchParams({
+    room,
+    key: token,
+    ...(window.ESTUDIO_GUEST_KEY ? { access: window.ESTUDIO_GUEST_KEY } : {}),
+  }).toString();
+  $("link").value = u.href;
+  show("invitation");
+  show("create", false);
+  show("prepare");
+}
+function persistInvitation() {
+  try {
+    localStorage.setItem(
+      "estudio-room",
+      JSON.stringify({
+        room,
+        token,
+        name: $("name").value.trim(),
+        title: $("title").value,
+        quality: $("quality").value,
+      }),
+    );
+    return true;
+  } catch {
+    notice(
+      "No se puede conservar el enlace al cerrar este navegador. Mantén esta página abierta.",
+    );
+    return false;
+  }
+}
+async function openHostRoom() {
+  const p = await openPeer(room);
+  p.on("connection", bindConn);
+  p.on("call", (c) => c.close());
 }
 async function storage() {
   if (!root) {
@@ -119,9 +174,13 @@ async function prepare() {
       throw Error(
         "No se ha podido cargar PeerJS. Comprueba internet y recarga.",
       );
-    if (guest && (!$("consent").checked || !$("name").value.trim()))
+    if (guest && !$("consent").checked)
       throw Error("Introduce tu nombre y acepta la grabación.");
     if (!guest) {
+      if (!room) await create();
+      if (!room) throw Error("Genera primero el enlace de invitación.");
+      audio = new AudioContext();
+      await audio.resume();
       if (
         typeof MediaRecorder === "undefined" ||
         !mime() ||
@@ -160,12 +219,35 @@ async function prepare() {
     show("controls");
     $("prepare").disabled = true;
     status("Cámara preparada");
-    if (guest) show("join");
-    else show("create");
+    show("stage");
+    show("intro", false);
+    setState("studio");
+    if (guest) {
+      guestWaiting = true;
+      show("leave");
+      waitingMessage("Conectando…");
+      await join();
+    } else {
+      persistInvitation();
+      show("copyLive");
+      show("exitHost");
+      await openHostRoom();
+      status("Estudio abierto");
+      waitingMessage(
+        "Todo listo por aquí.",
+        "Esperando a que entre tu invitado.",
+      );
+    }
   } catch (e) {
     stopTracks(stream);
     stream = null;
     $("prepare").disabled = false;
+    audio?.close().catch(() => {});
+    audio = null;
+    show("intro");
+    show("stage", false);
+    show("controls", false);
+    setState("home");
     fail(e);
   } finally {
     preparing = false;
@@ -205,11 +287,9 @@ function openPeer(id) {
         p.destroy();
         reject(e);
       } else {
-        fail(e);
-        if (guest && !admitted && !ending) {
-          show("join");
-          $("join").disabled = false;
-        }
+        if (guest && !admitted && !ending && !rejected) {
+          waitForHost();
+        } else fail(e);
       }
     });
     p.on("disconnected", () => {
@@ -232,6 +312,7 @@ function bindCall(c) {
   c.on("stream", (s) => {
     if (c !== call || ending) return;
     setRemote(s);
+    show("stageMessage", false);
     status("Conectado");
     if (!guest && !active && !pending) {
       connecting = false;
@@ -291,9 +372,8 @@ function bindConn(c) {
       $("remoteName").textContent = String(d.name || "Invitado").slice(0, 60);
       $("request").textContent =
         $("remoteName").textContent + " solicita entrar y acepta la grabación.";
-      $("accept").disabled = false;
-      show("waiting");
-      status("Invitado en espera");
+      status("Conectando al invitado");
+      accept().catch(fail);
     }
     if (c !== conn) return;
     if (guest && !admitted && d.type === "accept") {
@@ -317,12 +397,14 @@ function bindConn(c) {
       }
     }
     if (guest && d.type === "reject") {
-      status("Solicitud rechazada");
-      notice("La solicitud no fue aceptada.");
-      show("join");
-      $("join").disabled = false;
-      show("leave", false);
+      rejected = true;
+      guestWaiting = false;
+      clearTimeout(retryTimer);
+      status("Invitación no disponible");
+      notice("La entrevista ha terminado o ya hay otra persona conectada.");
       c.close();
+      cleanup();
+      show("again");
     }
     if (guest && admitted && d.type === "recording") {
       show("recording");
@@ -360,108 +442,102 @@ function bindConn(c) {
       show("waiting", false);
       status("Esperando al invitado");
     } else if (guest && !admitted) {
-      show("leave", false);
-      show("join");
-      $("join").disabled = false;
-      notice("La sala no está disponible. Puedes volver a solicitar entrada.");
+      waitForHost();
     } else {
       notice(
         "Se ha perdido la señalización. La grabación local puede continuar mientras haya vídeo.",
       );
     }
   });
-  c.on("error", fail);
+  c.on("error", (e) => {
+    if (guest && !admitted && !ending) waitForHost();
+    else fail(e);
+  });
 }
 async function create() {
-  if (ending || !stream || $("create").disabled) return;
-  try {
-    $("create").disabled = true;
-    notice("");
-    let saved = null;
-    try {
-      saved = JSON.parse(localStorage.getItem("estudio-room") || "null");
-    } catch {}
-    room =
-      validRoom(saved?.room) && validToken(saved?.token)
-        ? saved.room
-        : "entrevista-" + random();
-    token = room === saved?.room ? saved.token : random();
-    try {
-      localStorage.setItem("estudio-room", JSON.stringify({ room, token }));
-    } catch {
-      notice(
-        "La invitación solo estará activa mientras mantengas esta página abierta.",
-      );
-    }
-    const p = await openPeer(room);
-    p.on("connection", bindConn);
-    p.on("call", (c) => c.close());
-    const u = new URL(window.ESTUDIO_ENTRY_URL || location.href);
-    u.hash = new URLSearchParams({ room, key: token, ...(window.ESTUDIO_GUEST_KEY ? { access: window.ESTUDIO_GUEST_KEY } : {}) }).toString();
-    $("link").value = u.href;
-    show("invitation");
-    show("create", false);
-    status("Esperando al invitado");
-  } catch (e) {
-    fail(e);
-    $("create").disabled = false;
-  }
+  if (guest || ending) return;
+  notice("");
+  const saved = savedInvitation();
+  room = room || saved?.room || "entrevista-" + random();
+  token = token || saved?.token || random();
+  persistInvitation();
+  displayInvitation();
+  status("Invitación preparada");
 }
 async function join() {
   if (joining || ending || !stream) return;
+  if (!$("consent").checked) {
+    fail(Error("Para entrar, acepta la grabación."));
+    return;
+  }
+  if (!validRoom(roomParam) || !validToken(tokenParam)) {
+    fail(Error("Invitación no válida."));
+    return;
+  }
+  if (!$("name").value.trim()) $("name").value = "Invitado";
   joining = true;
   try {
     if (!$("consent").checked || !$("name").value.trim())
       throw Error("Introduce tu nombre y acepta la grabación.");
     if (!validRoom(roomParam) || !validToken(tokenParam))
       throw Error("Invitación no válida.");
-    $("join").disabled = true;
+    clearTimeout(retryTimer);
+    rejected = false;
     admitted = false;
     notice("");
-    if (peer && !peer.destroyed) peer.destroy();
-    const p = await openPeer("invitado-" + random());
-    p.on("call", (c) => {
-      if (
-        c.peer !== roomParam ||
-        !conn?.open ||
-        !admitted ||
-        c.metadata?.token !== tokenParam
-      ) {
-        c.close();
-        return;
-      }
-      bindCall(c);
-      c.answer(stream);
-    });
+    if(peer?.disconnected&&!peer.destroyed)peer.destroy();
+    const p =
+      peer && !peer.destroyed && !peer.disconnected
+        ? peer
+        : await openPeer("invitado-" + random());
+    if (!p._studioCallsBound) {
+      p._studioCallsBound = true;
+      p.on("call", (c) => {
+        if (
+          c.peer !== roomParam ||
+          !conn?.open ||
+          !admitted ||
+          c.metadata?.token !== tokenParam
+        ) {
+          c.close();
+          return;
+        }
+        bindCall(c);
+        c.answer(stream);
+      });
+    }
+    const previous = conn;
+    conn = null;
+    previous?.close();
     conn = p.connect(roomParam, { reliable: true });
     bindConn(conn);
     const c = conn;
     const timeout = setTimeout(() => {
-      if (!c.open) {
+      if (c === conn && !c.open && !ending && !admitted) {
         c.close();
-        $("join").disabled = false;
-        notice(
-          "El entrevistador todavía no está conectado. Vuelve a intentarlo.",
-        );
-        status("En espera");
+        waitForHost();
       }
     }, 12000);
     c.on("open", () => {
+      if (c !== conn || ending || rejected) {
+        c.close();
+        return;
+      }
       clearTimeout(timeout);
+      clearTimeout(retryTimer);
+      guestWaiting = false;
       send({
         type: "request",
         token: tokenParam,
         name: $("name").value.trim(),
         consent: true,
       });
-      status("Esperando autorización");
-      show("join", false);
-      $("join").disabled = false;
+      status("Conectando");
+      waitingMessage("Conectando tu entrevista…");
       show("leave");
     });
   } catch (e) {
-    fail(e);
-    $("join").disabled = false;
+    if (!ending) waitForHost();
   } finally {
     joining = false;
   }
@@ -470,9 +546,8 @@ async function accept() {
   if (!conn?.open || pending || active || connecting || ending) return;
   connecting = true;
   try {
-    $("accept").disabled = true;
     show("waiting", false);
-    audio = new AudioContext();
+    audio = audio || new AudioContext();
     await audio.resume();
     send({ type: "accept" });
     status("Conectando cámaras");
@@ -495,8 +570,7 @@ async function accept() {
   } catch (e) {
     connecting = false;
     fail(e);
-    $("accept").disabled = false;
-    show("waiting");
+    notice("No se pudo iniciar la conexión. Vuelve a entrar al estudio.");
   }
 }
 function drawVideo(ctx, v, x, y, w, h) {
@@ -613,6 +687,9 @@ async function beginRecording() {
   active = true;
   startTime = Date.now();
   show("recording");
+  show("copyLive", false);
+  show("exitHost", false);
+  setState("recording");
   show("finish");
   show("invitation", false);
   show("waiting", false);
@@ -627,6 +704,8 @@ async function beginRecording() {
 }
 function cleanup() {
   ending = true;
+  guestWaiting = false;
+  clearTimeout(retryTimer);
   connecting = false;
   sessionId++;
   clearInterval(timer);
@@ -640,6 +719,8 @@ function cleanup() {
   conn?.close();
   peer?.destroy();
   show("controls", false);
+  show("stage", false);
+  setState("result");
   show("again");
 }
 function finish(notify = true) {
@@ -838,16 +919,22 @@ async function refreshFiles() {
     list.textContent = "Almacenamiento no disponible: " + e.message;
   }
 }
-$("prepare").onclick = prepare;
+$("prepare").onclick = () => {
+  if (guest) {
+    $("consent").checked = true;
+    if (!$("name").value.trim()) $("name").value = "Invitado";
+  }
+  prepare();
+};
 $("create").onclick = create;
-$("join").onclick = join;
-$("accept").onclick = accept;
-$("reject").onclick = () => {
-  send({ type: "reject" });
-  conn?.close();
-  conn = null;
-  show("waiting", false);
-  status("Esperando al invitado");
+$("detailsToggle").onclick = () => show("hostDetails", $("hostDetails").hidden);
+$("libraryToggle").onclick = () =>
+  show("libraryContent", $("libraryContent").hidden);
+$("copyLive").onclick = () => $("copy").onclick();
+$("exitHost").onclick = () => {
+  send({ type: "end" });
+  cleanup();
+  location.reload();
 };
 $("copy").onclick = async () => {
   try {
@@ -874,16 +961,16 @@ $("mic").onclick = () => {
   const t = stream.getAudioTracks()[0];
   if (t) {
     t.enabled = !t.enabled;
-    $("mic").textContent = t.enabled
-      ? "Silenciar micrófono"
-      : "Activar micrófono";
+    $("mic").textContent = t.enabled ? "Micrófono" : "Activar micro";
+    $("mic").setAttribute("aria-pressed", String(!t.enabled));
   }
 };
 $("cam").onclick = () => {
   const t = stream.getVideoTracks()[0];
   if (t) {
     t.enabled = !t.enabled;
-    $("cam").textContent = t.enabled ? "Desactivar cámara" : "Activar cámara";
+    $("cam").textContent = t.enabled ? "Cámara" : "Activar cámara";
+    $("cam").setAttribute("aria-pressed", String(!t.enabled));
   }
 };
 $("finish").onclick = () => finish(true).catch(fail);
@@ -913,16 +1000,30 @@ document.addEventListener("visibilitychange", async () => {
   }
 });
 if (guest) {
-  $("heading").textContent = "Invitación a entrevista";
+  $("heading").textContent = "Tu entrevista.";
+  $("eyebrow").textContent = "TE ESTÁN ESPERANDO";
   $("description").textContent =
-    "Comprueba tu cámara y solicita acceso al entrevistador.";
-  show("titleLabel", false);
-  show("qualityLabel", false);
+    "Acepta la grabación y los permisos para entrar.";
+  $("prepare").textContent = "Aceptar y entrar";
+  show("prepare");
   show("consentLabel");
+  show("detailsToggle", false);
   show("create", false);
   show("library", false);
-} else refreshFiles().catch(() => {});
-diag();
+  $("again").textContent = "Volver a entrar";
+} else {
+  const saved = savedInvitation();
+  if (saved) {
+    room = saved.room;
+    token = saved.token;
+    $("name").value = saved.name || "";
+    $("title").value = saved.title || "";
+    $("quality").value = saved.quality || "720";
+    displayInvitation();
+  }
+  refreshFiles().catch(() => {});
+}
+setState("home");
 
 document.addEventListener("visibilitychange", () => {
   if (active && document.visibilityState === "hidden")

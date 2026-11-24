@@ -32,7 +32,7 @@ try:
             headless=True, args=['--no-sandbox', '--use-fake-device-for-media-stream',
                                 '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'])
         host_ctx = browser.new_context(accept_downloads=True, permissions=['camera', 'microphone'])
-        guest_ctx = browser.new_context(permissions=['camera', 'microphone'])
+        guest_ctx = browser.new_context(permissions=['camera', 'microphone'], viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
         host_top, guest_top = host_ctx.new_page(), guest_ctx.new_page()
         host, guest = host_top, guest_top
         errors = []
@@ -46,32 +46,38 @@ try:
             top.locator('#unlock').click()
             top.locator('#studio').wait_for(state='visible', timeout=20000)
             frame = top.frame(name='studio')
-            frame.locator('#prepare').wait_for(timeout=10000)
+            frame.locator('#heading').wait_for(timeout=10000)
             return frame
         host = unlock_host(host_top)
+        results=ROOT/'test-results';results.mkdir(exist_ok=True)
+        host_top.screenshot(path=str(results/'host-home.png'),full_page=True)
+        host.locator('#detailsToggle').click()
         host.locator('#name').fill('Entrevistador automático')
         host.locator('#title').fill('Verificación técnica')
-        host.locator('#prepare').click()
-        host.locator('#create').wait_for(state='visible', timeout=20000)
         host.locator('#create').click()
-        host.locator('#invitation').wait_for(state='visible', timeout=25000)
-        invitation = host.locator('#link').input_value()
+        host.locator('#invitation').wait_for(state='visible')
+        assert host.evaluate('!stream && !peer'), 'El enlace requiere cámara o anfitrión conectado'
+        invitation=host.locator('#link').input_value()
+        host_top.screenshot(path=str(results/'invitation-ready.png'),full_page=True)
+        host_top.close()
         guest_top.goto(invitation)
         if os.environ.get('APP_PASSWORD'):
-            guest_top.locator('#studio').wait_for(state='visible', timeout=20000)
-            guest = guest_top.frame(name='studio')
+            guest_top.locator('#studio').wait_for(state='visible',timeout=20000)
+            guest=guest_top.frame(name='studio')
             guest.locator('#prepare').wait_for(timeout=10000)
-            assert guest.locator('#create').is_hidden(), 'El invitado ve controles del anfitrión'
-        guest.locator('#name').fill('Invitado automático')
-        guest.locator('#consent').check()
         guest.locator('#prepare').click()
-        guest.locator('#join').wait_for(state='visible', timeout=15000)
-        guest.locator('#join').click()
-        host.locator('#waiting').wait_for(state='visible', timeout=25000)
-        assert host.locator('#recording').is_hidden(), 'Grabó antes de la admisión'
-        host.locator('#accept').click()
-        host.locator('#recording').wait_for(state='visible', timeout=35000)
-        guest.locator('#recording').wait_for(state='visible', timeout=10000)
+        guest.locator('#waitingTitle').filter(has_text='En espera de que el anfitrión se conecte.').wait_for(timeout=25000)
+        guest_top.screenshot(path=str(results/'guest-waiting-mobile.png'),full_page=True)
+        assert guest.evaluate('document.documentElement.scrollWidth<=innerWidth'), 'Desbordamiento en móvil'
+        host_top=host_ctx.new_page();host_top.on('pageerror',lambda e:errors.append(str(e)))
+        host=unlock_host(host_top)
+        assert host.locator('#link').input_value()==invitation, 'Cambió el enlace al volver más tarde'
+        host.locator('#prepare').click()
+        # The same guest waits and joins automatically: no further button on either side.
+        host.locator('#recording').wait_for(state='visible',timeout=40000)
+        guest.locator('#recording').wait_for(state='visible',timeout=10000)
+        guest_top.screenshot(path=str(results/'guest-recording-mobile.png'),full_page=True)
+        host_top.screenshot(path=str(results/'host-recording.png'),full_page=True)
         host.wait_for_function('written > 10000', timeout=20000)
         assert host.evaluate('remoteStream.getVideoTracks().some(t=>t.readyState==="live")')
         assert guest.evaluate('remoteStream.getAudioTracks().some(t=>t.readyState==="live")')
@@ -90,9 +96,10 @@ try:
             print(json.dumps(info))
         # Reload must retain OPFS recording and permit another download.
         host = unlock_host(host_top)
+        host.locator('#libraryToggle').click()
         host.get_by_role('button', name='Guardar vídeo', exact=True).wait_for(timeout=10000)
         assert not errors, errors
-        print('PASS: señalización PeerJS real, WebRTC en dos contextos, consentimiento, admisión, grabación, salida, cierre, persistencia OPFS, descarga y decodificación de audio/vídeo.')
+        print('PASS: invitación anticipada sin cámara, anfitrión cerrado y reabierto, invitado espera y entra automáticamente sin más botones, WebRTC real, grabación, cierre, descarga y decodificación. Diseño móvil sin desbordamiento.')
         browser.close()
 finally:
     if server:

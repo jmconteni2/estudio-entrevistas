@@ -285,7 +285,7 @@ test("token incorrecto y segundo participante no son admitidos", () => {
   const b = (t.ctx.b = new Events());
   t.run("bindConn(b)");
   b.emit("data", { type: "request", token: "correcto", consent: true });
-  assert.equal(t.get("waiting").hidden, false);
+  assert.equal(t.run("connecting"), true);
   const c = (t.ctx.c = new Events());
   t.run("bindConn(c)");
   c.emit("data", { type: "request", token: "correcto", consent: true });
@@ -483,4 +483,18 @@ test("se prefiere WebM por bloques a un MP4 con códec no especificado", () => {
  const t=setup();
  t.ctx.MediaRecorder.isTypeSupported=type=>type==='video/mp4'||type==='video/webm;codecs=vp8,opus';
  assert.equal(t.run('mime()'),'video/webm;codecs=vp8,opus');
+});
+
+test("crear enlace no solicita cámara ni abre una conexión", async()=>{
+ const t=setup();await t.run('create()');assert.equal(t.mediaCalls,0);assert.equal(t.run('peer'),undefined);assert.equal(t.get('invitation').hidden,false);
+ const link=t.get('link').value;await t.run('create()');assert.equal(t.get('link').value,link);
+});
+test("el anfitrión acepta automáticamente una invitación válida",async()=>{
+ const t=setup();t.run("stream={};token='correcto'");await t.run('openPeer("host")');
+ const c=t.ctx.c=new Events();t.run('bindConn(c)');c.emit('data',{type:'request',token:'correcto',consent:true});await flush();
+ assert.ok(c.sent.some(x=>x.type==='accept'));assert.equal(t.run('connecting'),true);
+});
+test("espera automática hasta que se conecta el anfitrión",()=>{
+ const t=setup('#room=x');t.run('waitForHost()');assert.equal(t.get('waitingTitle').textContent,'En espera de que el anfitrión se conecte.');
+ assert.ok([...t.timeouts.values()].some(x=>x.ms===5000));t.run('cleanup()');assert.equal(t.run('guestWaiting'),false);
 });

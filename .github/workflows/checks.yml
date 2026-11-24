@@ -16,21 +16,28 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - run: node --check app.js && node --check storage-worker.js && node --check docs/access.js
       - run: node --test tests/test_regressions.cjs
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - run: pip install -r tests/requirements.txt
       - run: test -x "$CHROMIUM_PATH"
       - run: python tests/test_browser.py
       - run: node tools/seal.mjs
         env:
           ESTUDIO_PASSWORD: ci-password-only
+          ESTUDIO_TEST_BUILD: "1"
       - run: python tests/test_access.py
         env:
           APP_PASSWORD: ci-password-only
       - run: python tests/test_live.py
         env:
           APP_PASSWORD: ci-password-only
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-checks
+          path: test-results/
+          retention-days: 2

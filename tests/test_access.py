@@ -30,7 +30,7 @@ try:
         page.locator('#unlock').click()
         page.locator('#studio').wait_for(state='visible',timeout=15000)
         host=page.frame(name='studio')
-        expect(host.locator('#heading')).to_have_text('Nueva entrevista')
+        expect(host.locator('#heading')).to_have_text('Prepara tu próxima entrevista.')
         assert host.evaluate('window.ESTUDIO_MODE')=='host'
         key=host.evaluate('window.ESTUDIO_GUEST_KEY')
         invite=url+'#room=entrevista-'+'a'*48+'&key='+'b'*48+'&access='+key
@@ -38,7 +38,7 @@ try:
         guest.goto(invite)
         guest.locator('#studio').wait_for(state='visible',timeout=15000)
         frame=guest.frame(name='studio')
-        expect(frame.locator('#heading')).to_have_text('Invitación a entrevista')
+        expect(frame.locator('#heading')).to_have_text('Tu entrevista.')
         assert frame.evaluate('window.ESTUDIO_MODE')=='guest'
         assert frame.evaluate('window.ESTUDIO_GUEST_KEY') is None
         assert frame.locator('#create').is_hidden()
