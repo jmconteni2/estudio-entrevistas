@@ -22,6 +22,9 @@ try:
         if engine=='chromium':
             launch.update(executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path,args=['--no-sandbox'])
         browser=browser_type.launch(**launch)
+        def studio(top):
+            top.frame_locator('#studio').locator('#heading').wait_for(timeout=15000)
+            return top.locator('#studio').element_handle().content_frame()
         page=browser.new_page()
         errors=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
@@ -34,7 +37,7 @@ try:
         page.locator('#password').fill(os.environ['APP_PASSWORD'])
         page.locator('#unlock').click()
         page.locator('#studio').wait_for(state='visible',timeout=15000)
-        host=page.frame(name='studio')
+        host=studio(page)
         expect(host.locator('#heading')).to_have_text('Prepara tu próxima entrevista.')
         assert host.evaluate('window.ESTUDIO_MODE')=='host'
         # Touch the real field and type through the keyboard, without fill(),
@@ -67,7 +70,7 @@ try:
             mobile.keyboard.insert_text(os.environ['APP_PASSWORD'])
             mobile.keyboard.press('Enter')
             mobile.locator('#studio').wait_for(state='visible',timeout=15000)
-            expect(mobile.frame(name='studio').locator('#heading')).to_have_text('Prepara tu próxima entrevista.')
+            expect(studio(mobile).locator('#heading')).to_have_text('Prepara tu próxima entrevista.')
             mobile_ctx.close()
         print('PASS: acceso táctil del anfitrión a 360x640, 390x844 y 844x390; foco, escritura con teclado, mostrar/ocultar, rechazo y apertura con Enter.')
         fallback_ctx=browser.new_context()
@@ -86,7 +89,7 @@ try:
         guest=browser.new_page()
         guest.goto(invite)
         guest.locator('#studio').wait_for(state='visible',timeout=15000)
-        frame=guest.frame(name='studio')
+        frame=studio(guest)
         expect(frame.locator('#heading')).to_have_text('Tu entrevista.')
         assert frame.evaluate('window.ESTUDIO_MODE')=='guest'
         assert frame.evaluate('window.ESTUDIO_GUEST_KEY') is None
