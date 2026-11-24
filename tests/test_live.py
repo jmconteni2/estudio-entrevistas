@@ -76,8 +76,6 @@ try:
         # The same guest waits and joins automatically: no further button on either side.
         host.locator('#recording').wait_for(state='visible',timeout=40000)
         guest.locator('#recording').wait_for(state='visible',timeout=10000)
-        guest_top.screenshot(path=str(results/'guest-recording-mobile.png'),full_page=True)
-        host_top.screenshot(path=str(results/'host-recording.png'),full_page=True)
         assert guest.evaluate('audio.state')=='running', 'Audio del invitado suspendido'
         assert guest.evaluate('!!playbackSource'), 'No se ha conectado la salida de audio'
         assert guest.locator('#remoteName').inner_text()=='Entrevistador automático'
@@ -85,7 +83,11 @@ try:
         host.wait_for_function('written > 10000', timeout=20000)
         assert host.evaluate('remoteStream.getVideoTracks().some(t=>t.readyState==="live")')
         assert guest.evaluate('remoteStream.getAudioTracks().some(t=>t.readyState==="live")')
+        guest.wait_for_function('document.getElementById("remote").readyState>=2 && !document.getElementById("remote").paused',timeout=15000)
+        host.wait_for_function('document.getElementById("remote").readyState>=2 && !document.getElementById("remote").paused',timeout=15000)
         host.wait_for_timeout(6500)
+        guest_top.screenshot(path=str(results/'guest-recording-mobile.png'),full_page=True)
+        host_top.screenshot(path=str(results/'host-recording.png'),full_page=True)
         # Guest departure must finalize the host recording and stop both cameras.
         guest.locator('#leave').click()
         host.locator('#result').wait_for(state='visible', timeout=20000)
