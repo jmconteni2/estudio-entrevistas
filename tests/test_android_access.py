@@ -54,14 +54,14 @@ with sync_playwright() as p:
  adb('shell','input','tap',str(round((box['x']+box['width']/2)*scale)),str(round(top+(box['y']+box['height']/2)*scale)))
  time.sleep(1)
  tree=dump('native-dialog')
- editor=next(n for n in tree.iter('node') if n.attrib.get('class')=='android.widget.EditText')
+ editor=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/js_modal_dialog_prompt'))
  tap_node(editor);time.sleep(1)
  dump('native-keyboard')
  for x,y in [(110,1400),(645,1550),(430,1550)]:
   adb('shell','input','tap',str(x),str(y));time.sleep(.3)
  def text():
   tree=dump('dialog-state')
-  return next(n for n in tree.iter('node') if n.attrib.get('class')=='android.widget.EditText').attrib.get('text','')
+  return next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/js_modal_dialog_prompt')).attrib.get('text','')
  typed=text();assert typed.lower()=='abc',typed
  adb('shell','input','tap','995','1550');time.sleep(.3)
  assert text()==typed[:-1],'Native dialog Backspace failed'
