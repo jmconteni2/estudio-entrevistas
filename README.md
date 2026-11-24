@@ -1,4 +1,4 @@
-# Lumen Interview — v0.6.6
+# Lumen Interview — v0.7.0
 
 Aplicación estática para videollamadas de dos personas con grabación audiovisual local. El entrevistador crea la invitación, admite al invitado y guarda el vídeo en su dispositivo. El invitado acepta la grabación y solicita entrada. No utiliza Zoom ni captura una aplicación externa.
 
@@ -110,3 +110,8 @@ Los tests verifican y no despliegan. Para cambios de la aplicación, regenerar l
 ## Revisión de acceso v0.6.6
 
 La entrada utiliza un formulario HTML nativo y estilos propios. No carga la hoja general del estudio ni controla el foco o la escritura. Se verificaron escritura y borrado con JavaScript desactivado en los tres motores, acceso completo en Chrome/Brave/Firefox/WebKit y pulsaciones reales de Gboard en Brave 1.95.104 sobre Android 11 emulado. Evidencia en tests/RESULTADOS_ACCESO_v0.6.6.txt; el fallo del teléfono concreto no tiene causa confirmada.
+
+
+## Acceso actual v0.7.0
+
+Pulsa Entrar como anfitrión e introduce la contraseña en el diálogo propio del navegador. Los caracteres se muestran mientras escribes. Ya no hay un formulario de contraseña web. Los invitados continúan entrando mediante su enlace. Comprobado en los tres motores y en el diálogo nativo de Brave 1.95.104 sobre Android 11 emulado.

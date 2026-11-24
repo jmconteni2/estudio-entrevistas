@@ -1,3 +1,15 @@
+# Acceso v0.7.0 — diálogo nativo
+
+
+## Acceso v0.7.0 — sustitución por diálogo nativo
+
+El formulario web se ha eliminado de la entrada de producción. El botón Entrar como anfitrión llama directamente, dentro del gesto del usuario y antes de cualquier espera, a window.prompt. La escritura tiene lugar en el diálogo propio del navegador; no hay input, textarea, formulario ni controles de teclado en la página. Los caracteres se muestran al escribir, y el mensaje del diálogo lo advierte. Cancelar no autentica, un valor vacío solicita contraseña, uno incorrecto se rechaza. La contraseña correcta descifra el mismo paquete de anfitrión. Invitaciones, contraseña real y cifrado no se modificaron.
+
+Comprobaciones 45405667896: correctas en Chrome, Brave de escritorio, Firefox y WebKit; cancelación, vacío, incorrecta, correcta, vistas móviles, invitación y entrevista/grabación. Las 29 pruebas Node pasaron. Android 45405667909, trabajo 138485604133: correcto en Brave 1.95.104 / Android 11 emulado. Se localizó específicamente el control nativo com.brave.browser:id/js_modal_dialog_prompt, evitando la barra de direcciones. Toques reales en Gboard escribieron, borraron y reescribieron; pulsar OK abrió el anfitrión. No se aceptó el diálogo mediante CDP ni se pegó texto. Las credenciales de prueba son aisladas.
+
+HTML y access.js v0.7.0 públicos coinciden con la revisión local. El bloqueo original del teléfono concreto no se ha reproducido: no atribuirlo como causa confirmada al cifrado ni a una característica de Brave. Este acceso sustituye el recorrido de edición web por uno nativo.
+
+
 # Acceso v0.6.6 — formulario aislado
 
 

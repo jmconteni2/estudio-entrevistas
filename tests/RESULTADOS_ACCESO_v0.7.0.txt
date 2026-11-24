@@ -1,0 +1,7 @@
+Lumen Interview v0.7.0 — diálogo nativo
+Código: 023689537cd8abf464945f342227bce80d944ffe
+Comprobaciones: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45405667896
+Android: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45405667909
+Chrome/Brave/Firefox/WebKit: PASS. 29 pruebas Node: PASS. Entrevista/grabación: PASS.
+2026-11-24T13:41:07.5571145Z Brave Android v1.95.104
+2026-11-24T13:42:05.9744940Z PASS: Brave Android 1.95.104 / Android 11: native Android EditText dialog receives software-keyboard touches, Backspace/retype and opens host. No web password field, CDP typing or paste.
