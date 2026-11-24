@@ -76,22 +76,19 @@ function send(obj) {
 function stopTracks(s) {
   s?.getTracks().forEach((t) => t.stop());
 }
-function setRemote(s) {
-  remoteStream = s;
-  $("remote").srcObject = s;
-  $("remote").muted = true;
-  playbackSource?.disconnect();
-  if (audio && s.getAudioTracks().length) {
-    playbackSource = audio.createMediaStreamSource(s);
-    playbackSource.connect(audio.destination);
-  }
-  $("remote")
-    .play()
-    .catch(() => {
-      notice("Pulsa sobre el vídeo remoto para activar su sonido.");
-    });
+function setRemote(s){
+ const video=$('remote'),changed=video.srcObject!==s;
+ remoteStream=s;video.muted=true;
+ if(changed)video.srcObject=s;
+ if(audio&&s.getAudioTracks().length&&(changed||!playbackSource)){
+  playbackSource?.disconnect();playbackSource=audio.createMediaStreamSource(s);playbackSource.connect(audio.destination);
+ }
+ if(changed||video.paused)video.play().catch(e=>{
+  if(e.name==='AbortError'||ending||video.srcObject!==s)return;
+  notice('Pulsa sobre el vídeo si no se muestra la imagen.');
+ });
 }
-$("remote").onclick = () => $("remote").play().catch(fail);
+$('remote').onclick=()=>{audio?.resume().catch(fail);$('remote').play().catch(fail);};
 function setState(value) {
   if (document.body?.dataset) document.body.dataset.state = value;
 }
