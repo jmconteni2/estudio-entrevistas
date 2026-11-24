@@ -1,0 +1,11 @@
+Lumen Interview — acceso v0.6.5
+Código probado: 911418da35bf7783377ee62ce540df4f0114090b
+Comprobaciones: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45399478205
+Android: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45399478794
+Android 11 emulado, Brave Android 1.95.104: escritura con toques del teclado del sistema, borrado, reescritura, ojo, salida y regreso a Brave, nueva edición y acceso como anfitrión: PASS.
+Chrome, Brave estable de escritorio, Firefox y WebKit: PASS.
+29 pruebas Node y pruebas de navegador, invitaciones y grabación: PASS.
+La causa exacta del teléfono del propietario no quedó reproducida. Las tres variantes comparadas en el emulador admitieron escritura antes de esta simplificación; no inventar una atribución causal.
+
+2026-11-24T13:04:58.6908521Z Brave Android v1.95.104
+2026-11-24T13:06:26.6592168Z PASS: Brave Android 1.95.104 / Android 11: real software-keyboard touches type abc, delete/retype, show/hide, delete/retype again, resume after switching apps, edit again, and submit to host. No CDP typing or paste.

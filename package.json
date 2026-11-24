@@ -1,6 +1,6 @@
 {
   "name": "estudio-entrevistas",
-  "version": "0.6.0",
+  "version": "0.6.5",
   "private": true,
   "description": "Lumen Interview: entrevistas privadas con composición y grabación local",
   "scripts": {
