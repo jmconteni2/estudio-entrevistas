@@ -41,7 +41,7 @@ try:
             password=mobile.locator('#password')
             password.tap()
             assert password.evaluate('el => document.activeElement===el')
-            assert password.get_attribute('type')=='text'
+            assert password.evaluate("el=>el.tagName==='TEXTAREA'")
             assert password.evaluate("el => getComputedStyle(el).webkitTextSecurity==='disc'")
             # Insert committed text as a software keyboard/IME does, rather
             # than only generating desktop physical-key events.
@@ -74,7 +74,7 @@ try:
         fallback.locator('#showPassword').click()
         assert fallback.locator('#password').get_attribute('type')=='password'
         fallback_ctx.close()
-        print('PASS: entrada IME en control de texto enmascarado; alternativa nativa segura sin soporte CSS; ojo accesible sin texto visible.')
+        print('PASS: entrada IME mediante textarea enmascarada, sin integración de autocompletado; alternativa nativa segura y ojo accesible.')
         key=host.evaluate('window.ESTUDIO_GUEST_KEY')
         invite=url+'#room=entrevista-'+'a'*48+'&key='+'b'*48+'&access='+key
         guest=browser.new_page()

@@ -32,6 +32,13 @@ jobs:
       - run: python tests/test_access.py
         env:
           APP_PASSWORD: ci-password-only
+      - name: Descargar Brave estable oficial para comprobar el acceso
+        run: python tests/install_brave.py
+      - name: Probar acceso con Brave real y vista móvil
+        run: python tests/test_access.py
+        env:
+          APP_PASSWORD: ci-password-only
+          CHROMIUM_PATH: ${{ env.BRAVE_PATH }}
       - run: python tests/test_live.py
         env:
           APP_PASSWORD: ci-password-only

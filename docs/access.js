@@ -7,16 +7,44 @@ const params=new URLSearchParams(location.hash.slice(1));
 const enc=new TextEncoder(),dec=new TextDecoder();
 const unbase64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let busy=false;
-const passwordInput=document.getElementById('password');
+let passwordInput=document.getElementById('password');
 const showPassword=document.getElementById('showPassword');
-// Some Android keyboards fail to insert text in a native password control.
-// Keep a stable plain-text editing surface where visual masking is supported.
-// Other engines retain the native password input so text is never exposed.
+// Use a stable textarea on engines with visual masking support. This avoids
+// input[type=password] and its autofill/IME integration without exposing text.
+// Browsers without text-security keep their native password input.
 const cssPasswordMask=!!(window.CSS && CSS.supports('-webkit-text-security','disc'));
 let passwordVisible=false;
 if(cssPasswordMask){
- passwordInput.classList.add('password-masked');
- passwordInput.type='text';
+ const editor=document.createElement('textarea');
+ editor.id=passwordInput.id;
+ editor.name='host-access';
+ editor.rows=1;
+ editor.required=true;
+ editor.autocomplete='off';
+ editor.setAttribute('autocapitalize','none');
+ editor.setAttribute('autocorrect','off');
+ editor.setAttribute('enterkeyhint','go');
+ editor.setAttribute('inputmode','text');
+ editor.setAttribute('aria-label','Contraseña del anfitrión');
+ editor.spellcheck=false;
+ editor.className='password-masked';
+ editor.value=passwordInput.value;
+ passwordInput.replaceWith(editor);
+ passwordInput=editor;
+ // A textarea does not submit a form on Enter by default. Handle both the
+ // physical key and the soft-keyboard action, while leaving IME composition alone.
+ editor.addEventListener('keydown',event=>{
+  if(event.key==='Enter'&&!event.isComposing){event.preventDefault();form.requestSubmit();}
+ });
+ editor.addEventListener('beforeinput',event=>{
+  if(!event.isComposing&&['insertLineBreak','insertParagraph'].includes(event.inputType)){
+   event.preventDefault();form.requestSubmit();
+  }
+ });
+ editor.addEventListener('input',()=>{
+  // A pasted line ending is formatting, not part of the host access phrase.
+  if(/[\r\n]/.test(editor.value))editor.value=editor.value.replace(/[\r\n]/g,'');
+ });
 }
 showPassword.addEventListener('pointerdown',event=>event.preventDefault());
 showPassword.addEventListener('click',()=>{
