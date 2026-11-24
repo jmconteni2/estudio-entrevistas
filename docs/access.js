@@ -1,23 +1,12 @@
 'use strict';
 const panel=document.getElementById('accessPanel');
-const form=document.getElementById('login');
+const hostAccess=document.getElementById('hostAccess');
 const message=document.getElementById('accessMessage');
 let frame=null;
 const params=new URLSearchParams(location.hash.slice(1));
 const enc=new TextEncoder(),dec=new TextDecoder();
 const unbase64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let busy=false;
-const passwordInput=document.getElementById('password');
-const showPassword=document.getElementById('showPassword');
-// The browser owns typing, composition, selection and focus completely.
-showPassword.addEventListener('click',()=>{
- const visible=passwordInput.type==='password';
- passwordInput.type=visible?'text':'password';
- const label=visible?'Ocultar contraseña':'Mostrar contraseña';
- showPassword.setAttribute('aria-label',label);
- showPassword.title=label;
- showPassword.setAttribute('aria-pressed',String(visible));
-});
 async function envelope(role){
  const response=await fetch(`sealed-${role}.json`,{cache:'no-store'});
  if(!response.ok)throw Error('No se pudo cargar el acceso. Recarga la página.');
@@ -49,20 +38,23 @@ function openApp(payload){
  // URLs remain valid for this tab, including the Nueva entrevista reload.
  window.addEventListener('pagehide',()=>{URL.revokeObjectURL(codeURL);URL.revokeObjectURL(pageURL);},{once:true});
 }
-form.addEventListener('submit',async event=>{
- event.preventDefault();if(busy)return;busy=true;
- const button=document.getElementById('unlock');button.disabled=true;message.textContent='Abriendo estudio…';
- const submittedPassword=passwordInput.value;
+hostAccess.addEventListener('click',async()=>{
+ if(busy)return;
+ // This is the browser's own native dialog, not a password field in the page.
+ const submittedPassword=window.prompt('Contraseña del anfitrión (se mostrará al escribir):');
+ if(submittedPassword===null)return;
+ if(!submittedPassword){message.textContent='Introduce la contraseña para entrar.';return;}
+ busy=true;hostAccess.disabled=true;message.textContent='Abriendo estudio…';
  try{
   const data=await envelope('host');
   const material=await crypto.subtle.importKey('raw',enc.encode(submittedPassword),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:unbase64(data.salt),iterations:data.iterations,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['decrypt']);
-  const payload=await decrypt(data,key);document.getElementById('password').value='';openApp(payload);
+  openApp(await decrypt(data,key));
  }catch(e){message.textContent=e.name==='OperationError'?'Contraseña incorrecta.':(e.message||'No se pudo abrir el estudio.');}
- finally{busy=false;button.disabled=false;}
+ finally{busy=false;hostAccess.disabled=false;}
 });
 if(params.has('room')){
- form.hidden=true;document.getElementById('accessDescription').textContent='Acceso mediante invitación';
+ hostAccess.hidden=true;document.getElementById('accessDescription').textContent='Acceso mediante invitación';
  (async()=>{
   try{
    if(!/^entrevista-[a-f0-9]{48}$/.test(params.get('room')||'')||!/^[a-f0-9]{48}$/.test(params.get('key')||'')||!/^[A-Za-z0-9_-]{43}$/.test(params.get('access')||''))throw Error('La invitación no es válida o está incompleta.');

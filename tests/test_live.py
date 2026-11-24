@@ -43,8 +43,8 @@ try:
             top.goto(url)
             if not os.environ.get('APP_PASSWORD'):
                 return top
-            top.locator('#password').fill(os.environ['APP_PASSWORD'])
-            top.locator('#unlock').click()
+            top.once('dialog',lambda dialog:dialog.accept(os.environ['APP_PASSWORD']))
+            top.locator('#hostAccess').click()
             top.locator('#studio').wait_for(state='visible', timeout=20000)
             frame = top.frame(name='studio')
             frame.locator('#heading').wait_for(timeout=10000)

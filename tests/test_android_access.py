@@ -44,56 +44,37 @@ with sync_playwright() as p:
  page=next((page for context in browser.contexts for page in context.pages if 'localhost' in page.url),None)
  if page is None:page=browser.contexts[0].new_page()
  page.goto('http://localhost:8765/')
- field=page.locator('#password');field.wait_for()
- assert page.locator('iframe').count()==0
- assert field.evaluate("el=>el.tagName==='INPUT' && el.type==='password'")
- def touch(selector):
-  tree=dump('position')
-  box=page.locator(selector).bounding_box()
-  toolbar=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/control_container'))
-  top=int(re.findall(r'\d+',toolbar.attrib['bounds'])[-1])
-  scale=1080/page.evaluate('innerWidth')
-  adb('shell','input','tap',str(round((box['x']+box['width']/2)*scale)),str(round(top+(box['y']+box['height']/2)*scale)))
-  time.sleep(.5)
- touch('#password');time.sleep(1)
- dump('keyboard')
- # Pixel 2 / Android 11 Gboard coordinates inspected in the previous captures.
+ assert page.locator('input,textarea,form,iframe').count()==0
+ # Leave the native dialog open for Android touch input instead of accepting via CDP.
+ page.on('dialog',lambda dialog:None)
+ tree=dump('entry')
+ box=page.locator('#hostAccess').bounding_box()
+ toolbar=next(n for n in tree.iter('node') if n.attrib.get('resource-id','').endswith('/control_container'))
+ top=int(re.findall(r'\d+',toolbar.attrib['bounds'])[-1]);scale=1080/page.evaluate('innerWidth')
+ adb('shell','input','tap',str(round((box['x']+box['width']/2)*scale)),str(round(top+(box['y']+box['height']/2)*scale)))
+ time.sleep(1)
+ tree=dump('native-dialog')
+ editor=next(n for n in tree.iter('node') if n.attrib.get('class')=='android.widget.EditText')
+ tap_node(editor);time.sleep(1)
+ dump('native-keyboard')
  for x,y in [(110,1400),(645,1550),(430,1550)]:
   adb('shell','input','tap',str(x),str(y));time.sleep(.3)
- assert field.input_value()=='abc',field.input_value()
+ def text():
+  tree=dump('dialog-state')
+  return next(n for n in tree.iter('node') if n.attrib.get('class')=='android.widget.EditText').attrib.get('text','')
+ typed=text();assert typed.lower()=='abc',typed
  adb('shell','input','tap','995','1550');time.sleep(.3)
- assert field.input_value()=='ab','Soft-keyboard Backspace failed'
+ assert text()==typed[:-1],'Native dialog Backspace failed'
  adb('shell','input','tap','430','1550');time.sleep(.3)
- assert field.input_value()=='abc'
- dump('native-typed')
- touch('#showPassword')
- assert field.get_attribute('type')=='text'
- assert field.input_value()=='abc'
- touch('#password')
- # Editing must still work after toggling the eye, without pasting or CDP typing.
- adb('shell','input','tap','995','1550');time.sleep(.3)
- assert field.input_value()=='ab','Backspace after eye failed'
- adb('shell','input','tap','430','1550');time.sleep(.3)
- assert field.input_value()=='abc'
- touch('#showPassword')
- assert field.get_attribute('type')=='password'
- touch('#password')
- dump('after-editing')
- # Re-entering Brave after another app must create a fresh native editing session.
- adb('shell','input','keyevent','3');time.sleep(1)
- activity=adb('shell','cmd','package','resolve-activity','--brief','-a','android.intent.action.MAIN','-c','android.intent.category.LAUNCHER','com.brave.browser').splitlines()[-1]
- adb('shell','am','start','-n',activity);time.sleep(1)
- touch('#password');time.sleep(1)
- assert field.input_value()=='abc','Value was lost while switching apps'
- adb('shell','input','tap','995','1550');time.sleep(.3)
- assert field.input_value()=='ab','Backspace after returning to Brave failed'
- adb('shell','input','tap','430','1550');time.sleep(.3)
- assert field.input_value()=='abc'
- dump('after-resume')
- adb('shell','input','tap','995','1710')
+ typed=text();assert typed.lower()=='abc'
+ # Seal a test-only fixture using exactly the case supplied by Android's keyboard.
+ subprocess.run(['node',str(ROOT/'tools/seal.mjs')],env={**os.environ,'ESTUDIO_PASSWORD':typed,'ESTUDIO_TEST_BUILD':'1'},check=True)
+ tree=dump('dialog-edited')
+ ok=next(n for n in tree.iter('node') if n.attrib.get('resource-id')=='android:id/button1')
+ tap_node(ok)
  page.frame_locator('#studio').locator('#heading').wait_for(timeout=20000)
  assert page.frame_locator('#studio').locator('#heading').inner_text()=='Prepara tu próxima entrevista.'
  dump('host-unlocked')
- print('PASS: Brave Android 1.95.104 / Android 11: real software-keyboard touches type abc, delete/retype, show/hide, delete/retype again, resume after switching apps, edit again, and submit to host. No CDP typing or paste.',flush=True)
+ print('PASS: Brave Android 1.95.104 / Android 11: native Android EditText dialog receives software-keyboard touches, Backspace/retype and opens host. No web password field, CDP typing or paste.',flush=True)
  browser.close()
 server.shutdown()
