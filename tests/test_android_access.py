@@ -11,7 +11,7 @@ def dump(name):
  return ET.fromstring(xml)
 def tap_node(node):
  x1,y1,x2,y2=map(int,re.findall(r'\d+',node.attrib['bounds']));adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
-req=urllib.request.Request('https://api.github.com/repos/brave/brave-browser/releases/latest',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'User-Agent':'Lumen-CI'})
+req=urllib.request.Request('https://api.github.com/repos/brave/brave-browser/releases/tags/v1.95.104',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'User-Agent':'Lumen-CI'})
 with urllib.request.urlopen(req,timeout=40) as response:release=json.load(response)
 asset=next(a for a in release['assets'] if a['name']=='BraveMonox64.apk')
 apk=OUT/'brave.apk';urllib.request.urlretrieve(asset['browser_download_url'],apk)
