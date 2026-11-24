@@ -7,6 +7,16 @@ const params=new URLSearchParams(location.hash.slice(1));
 const enc=new TextEncoder(),dec=new TextDecoder();
 const unbase64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let busy=false;
+const passwordInput=document.getElementById('password');
+const showPassword=document.getElementById('showPassword');
+// Keep focus tied to a user gesture: mobile keyboards can ignore autofocus.
+showPassword.addEventListener('click',()=>{
+ const visible=passwordInput.type==='password';
+ passwordInput.type=visible?'text':'password';
+ showPassword.textContent=visible?'Ocultar':'Mostrar';
+ showPassword.setAttribute('aria-pressed',String(visible));
+ passwordInput.focus();
+});
 async function envelope(role){
  const response=await fetch(`sealed-${role}.json`,{cache:'no-store'});
  if(!response.ok)throw Error('No se pudo cargar el acceso. Recarga la página.');

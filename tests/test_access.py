@@ -32,6 +32,33 @@ try:
         host=page.frame(name='studio')
         expect(host.locator('#heading')).to_have_text('Prepara tu próxima entrevista.')
         assert host.evaluate('window.ESTUDIO_MODE')=='host'
+        # Touch the real field and type through the keyboard, without fill(),
+        # so an unfocusable or covered mobile input cannot silently pass.
+        for width,height in [(360,640),(390,844),(844,390)]:
+            mobile_ctx=browser.new_context(viewport={'width':width,'height':height},is_mobile=True,has_touch=True)
+            mobile=mobile_ctx.new_page()
+            mobile.goto(url)
+            password=mobile.locator('#password')
+            password.tap()
+            assert password.evaluate('el => document.activeElement===el')
+            mobile.keyboard.type('incorrecta')
+            assert password.input_value()=='incorrecta'
+            mobile.locator('#showPassword').tap()
+            assert password.get_attribute('type')=='text'
+            assert password.input_value()=='incorrecta'
+            assert password.evaluate('el => document.activeElement===el')
+            mobile.locator('#showPassword').tap()
+            assert password.get_attribute('type')=='password'
+            mobile.locator('#unlock').tap()
+            expect(mobile.locator('#accessMessage')).to_have_text('Contraseña incorrecta.')
+            password.tap()
+            mobile.keyboard.press('ControlOrMeta+A')
+            mobile.keyboard.type(os.environ['APP_PASSWORD'])
+            mobile.keyboard.press('Enter')
+            mobile.locator('#studio').wait_for(state='visible',timeout=15000)
+            expect(mobile.frame(name='studio').locator('#heading')).to_have_text('Prepara tu próxima entrevista.')
+            mobile_ctx.close()
+        print('PASS: acceso táctil del anfitrión a 360x640, 390x844 y 844x390; foco, escritura con teclado, mostrar/ocultar, rechazo y apertura con Enter.')
         key=host.evaluate('window.ESTUDIO_GUEST_KEY')
         invite=url+'#room=entrevista-'+'a'*48+'&key='+'b'*48+'&access='+key
         guest=browser.new_page()
