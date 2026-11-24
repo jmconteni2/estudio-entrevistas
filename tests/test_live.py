@@ -78,6 +78,9 @@ try:
         guest.locator('#recording').wait_for(state='visible',timeout=10000)
         guest_top.screenshot(path=str(results/'guest-recording-mobile.png'),full_page=True)
         host_top.screenshot(path=str(results/'host-recording.png'),full_page=True)
+        assert guest.evaluate('audio.state')=='running', 'Audio del invitado suspendido'
+        assert guest.locator('#remoteName').inner_text()=='Entrevistador automático'
+        assert 'activar su sonido' not in guest.locator('#notice').inner_text()
         host.wait_for_function('written > 10000', timeout=20000)
         assert host.evaluate('remoteStream.getVideoTracks().some(t=>t.readyState==="live")')
         assert guest.evaluate('remoteStream.getAudioTracks().some(t=>t.readyState==="live")')

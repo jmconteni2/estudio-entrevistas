@@ -9,6 +9,7 @@ const params = new URLSearchParams(location.hash.slice(1)),
     : params.has("room"),
   roomParam = params.get("room"),
   tokenParam = params.get("key");
+let playbackSource;
 let retryTimer,
   guestWaiting = false,
   rejected = false;
@@ -78,6 +79,12 @@ function stopTracks(s) {
 function setRemote(s) {
   remoteStream = s;
   $("remote").srcObject = s;
+  $("remote").muted = true;
+  playbackSource?.disconnect();
+  if (audio && s.getAudioTracks().length) {
+    playbackSource = audio.createMediaStreamSource(s);
+    playbackSource.connect(audio.destination);
+  }
   $("remote")
     .play()
     .catch(() => {
@@ -176,11 +183,11 @@ async function prepare() {
       );
     if (guest && !$("consent").checked)
       throw Error("Introduce tu nombre y acepta la grabación.");
+    audio = new AudioContext();
+    await audio.resume();
     if (!guest) {
       if (!room) await create();
       if (!room) throw Error("Genera primero el enlace de invitación.");
-      audio = new AudioContext();
-      await audio.resume();
       if (
         typeof MediaRecorder === "undefined" ||
         !mime() ||
@@ -384,6 +391,7 @@ function bindConn(c) {
         return;
       }
       admitted = true;
+      $("remoteName").textContent = String(d.name || "Anfitrión").slice(0, 60);
       send({ type: "ready" });
       status("Estableciendo videollamada");
       show("leave");
@@ -485,7 +493,7 @@ async function join() {
     rejected = false;
     admitted = false;
     notice("");
-    if(peer?.disconnected&&!peer.destroyed)peer.destroy();
+    if (peer?.disconnected && !peer.destroyed) peer.destroy();
     const p =
       peer && !peer.destroyed && !peer.disconnected
         ? peer
@@ -549,7 +557,7 @@ async function accept() {
     show("waiting", false);
     audio = audio || new AudioContext();
     await audio.resume();
-    send({ type: "accept" });
+    send({ type: "accept", name: $("name").value.trim() || "Anfitrión" });
     status("Conectando cámaras");
     const id = ++sessionId;
     setTimeout(() => {
@@ -711,6 +719,8 @@ function cleanup() {
   clearInterval(timer);
   cancelAnimationFrame(animation);
   wake?.release().catch(() => {});
+  playbackSource?.disconnect();
+  playbackSource = null;
   audio?.close().catch(() => {});
   stopTracks(combined);
   stopTracks(stream);
@@ -1000,6 +1010,7 @@ document.addEventListener("visibilitychange", async () => {
   }
 });
 if (guest) {
+  $("remoteName").textContent = "Anfitrión";
   $("heading").textContent = "Tu entrevista.";
   $("eyebrow").textContent = "TE ESTÁN ESPERANDO";
   $("description").textContent =
