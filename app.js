@@ -100,6 +100,10 @@ function waitingMessage(title, text = "") {
   $("waitingText").textContent = text;
   show("stageMessage");
 }
+async function keepAwake(){
+ if(wake&&!wake.released)return;
+ try{wake=await navigator.wakeLock?.request('screen');}catch{}
+}
 function waitForHost() {
   if (ending || admitted || rejected) return;
   guestWaiting = true;
@@ -221,6 +225,7 @@ async function prepare() {
         autoGainControl: true,
       },
     });
+    keepAwake();
     $("local").srcObject = stream;
     $("localName").textContent = $("name").value.trim() || "Tú";
     show("controls");
@@ -706,9 +711,7 @@ async function beginRecording() {
   tick();
   send({ type: "recording" });
   status("Grabando");
-  try {
-    wake = await navigator.wakeLock?.request("screen");
-  } catch {}
+  await keepAwake();
 }
 function cleanup() {
   ending = true;
@@ -1003,16 +1006,12 @@ window.addEventListener("beforeunload", (e) => {
   }
 });
 document.addEventListener("visibilitychange", async () => {
-  if (active && document.visibilityState === "visible") {
-    try {
-      wake = await navigator.wakeLock?.request("screen");
-    } catch {}
-  }
+  if(stream&&!ending&&document.visibilityState==='visible')await keepAwake();
 });
 if (guest) {
   $("remoteName").textContent = "Anfitrión";
   $("heading").textContent = "Tu entrevista.";
-  $("eyebrow").textContent = "TE ESTÁN ESPERANDO";
+  $("eyebrow").textContent = "TU INVITACIÓN";
   $("description").textContent =
     "Acepta la grabación y los permisos para entrar.";
   $("prepare").textContent = "Aceptar y entrar";
