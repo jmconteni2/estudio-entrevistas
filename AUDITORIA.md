@@ -1,3 +1,17 @@
+# Actualización v0.04 — interfaz e invitaciones anticipadas
+
+El propietario pidió simplificar el diseño, preparar invitaciones sin activar cámara ni conectarse en directo y eliminar aceptaciones posteriores. El enlace válido autoriza al invitado. Al entrar, este acepta la grabación y concede los permisos seguidos; no existe un botón posterior de admisión. Si el anfitrión está desconectado se muestra «En espera de que el anfitrión se conecte.» y se reintenta automáticamente.
+
+La invitación y los datos se conservan en el mismo navegador/dispositivo del anfitrión. Se ha probado generar el enlace sin cámara ni Peer, cerrar la página, dejar al invitado esperando, volver a abrir el anfitrión y establecer la llamada sin ninguna pulsación adicional del invitado. El empaquetado conserva la clave de invitado al actualizar, para mantener enlaces ya enviados; se comprobó comparando las claves descifradas antes y después sin imprimirlas.
+
+Se retiraron información técnica, diagnóstico y pie promocional. Nombre, título y calidad son opcionales y plegables, las grabaciones quedan en Mis grabaciones y los controles de llamada solo aparecen durante la sesión. El diseño móvil usa cámara propia en miniatura y se comprobó que no desborda a 390 px.
+
+El audio se activa desde el botón inicial y se reproduce mediante el AudioContext ya habilitado, evitando una aceptación posterior para oír al otro participante. Se solicita pantalla activa también durante la espera, si el navegador lo permite. El sistema operativo sigue pudiendo suspender una página; no se garantiza disponibilidad en todas las redes.
+
+Resultados de v0.04: ejecución 45356316970, trabajo 138314909854, commit e14552669d72f24f0b397aeca21a9f3bc5b15bf9, correcta. 22 pruebas Node y tres pruebas de navegador aprobadas. Despliegue 45356316711 correcto. La prueba final verificó reproducción automática de las dos cámaras y salida de audio activa, además de espera, conexión y archivo descargado y decodificado. Se revisó el diseño mediante capturas de escritorio y móvil; la anchura de 390 px no desborda. Se compararon por HTTPS los siete recursos de producción con los archivos revisados.
+
+Se conservan a continuación los resultados históricos de la auditoría y la v0.03; la admisión manual mencionada en esos resultados históricos fue sustituida por el flujo automático autorizado en v0.04.
+
 # Auditoría de Estudio de entrevistas
 
 Fecha: 24 de noviembre de 2026. Base revisada: `Estudio_Entrevistas_v0.01.zip`. Resultado de la revisión y correcciones: v0.03, con acceso del anfitrión y entrada por invitación.

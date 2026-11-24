@@ -1,0 +1,14 @@
+Resultados Estudio de entrevistas v0.04
+Commit probado: e14552669d72f24f0b397aeca21a9f3bc5b15bf9
+Pruebas: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45356316970
+Despliegue: https://github.com/jmconteni2/estudio-entrevistas/actions/runs/45356316711
+Resultado: success
+
+2026-11-24T08:27:53.6675150Z # tests 22
+2026-11-24T08:27:53.6676018Z # pass 22
+2026-11-24T08:27:53.6676413Z # fail 0
+2026-11-24T08:28:11.7948873Z PASS: enlace sin conexión ni cámara, persistencia tras recargar, token incorrecto rechazado, admisión automática, grabación OPFS y archivo decodificado.
+2026-11-24T08:28:14.2070172Z PASS: contraseña incorrecta rechazada; contraseña correcta abre anfitrión; invitación abre invitado sin contraseña; enlace incompleto rechazado.
+2026-11-24T08:28:31.6063832Z {"video": "vp8", "audio": "opus", "width": 1280, "height": 720}
+2026-11-24T08:28:31.6066867Z PASS: invitación anticipada sin cámara, anfitrión cerrado y reabierto, invitado espera y entra automáticamente sin más botones, WebRTC real, grabación, cierre, descarga y decodificación. Diseño móvil sin desbordamiento.
+
