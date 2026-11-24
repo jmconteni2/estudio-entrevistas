@@ -77,10 +77,21 @@ with sync_playwright() as p:
  touch('#showPassword')
  assert field.get_attribute('type')=='password'
  dump('after-editing')
+ # Re-entering Brave after another app must create a fresh native editing session.
+ adb('shell','input','keyevent','3');time.sleep(1)
+ activity=adb('shell','cmd','package','resolve-activity','--brief','-a','android.intent.action.MAIN','-c','android.intent.category.LAUNCHER','com.brave.browser').splitlines()[-1]
+ adb('shell','am','start','-n',activity);time.sleep(1)
+ touch('#password');time.sleep(1)
+ assert field.input_value()=='abc','Value was lost while switching apps'
+ adb('shell','input','tap','995','1550');time.sleep(.3)
+ assert field.input_value()=='ab','Backspace after returning to Brave failed'
+ adb('shell','input','tap','430','1550');time.sleep(.3)
+ assert field.input_value()=='abc'
+ dump('after-resume')
  adb('shell','input','tap','995','1710')
  page.frame_locator('#studio').locator('#heading').wait_for(timeout=20000)
  assert page.frame_locator('#studio').locator('#heading').inner_text()=='Prepara tu próxima entrevista.'
  dump('host-unlocked')
- print('PASS: Brave Android 1.95.104 / Android 11: real software-keyboard touches type abc, delete/retype, show/hide, delete/retype again, and submit to host. No CDP typing or paste.',flush=True)
+ print('PASS: Brave Android 1.95.104 / Android 11: real software-keyboard touches type abc, delete/retype, show/hide, delete/retype again, resume after switching apps, edit again, and submit to host. No CDP typing or paste.',flush=True)
  browser.close()
 server.shutdown()

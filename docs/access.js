@@ -9,6 +9,14 @@ const unbase64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let busy=false;
 const passwordInput=document.getElementById('password');
 const showPassword=document.getElementById('showPassword');
+// A restored DOM focus can outlive Android's native keyboard connection.
+// Leave the editor unfocused while away, so the next real tap starts a fresh session.
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden&&document.activeElement===passwordInput)passwordInput.blur();
+});
+window.addEventListener('pageshow',event=>{
+ if(event.persisted&&document.activeElement===passwordInput)passwordInput.blur();
+});
 // Keep the native password control in the original HTML. Do not replace it,
 // autofocus it or intercept its typing/composition events.
 showPassword.addEventListener('pointerdown',event=>event.preventDefault());
